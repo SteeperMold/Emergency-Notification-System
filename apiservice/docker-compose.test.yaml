@@ -29,8 +29,6 @@ services:
         condition: service_healthy
     volumes:
       - ./database/migrations/:/migrations
-    env_file:
-      - .env
     command: [
       "-path",
       "/migrations",
