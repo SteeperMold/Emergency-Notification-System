@@ -5,13 +5,13 @@ on:
     branches: [ main ]
     paths:
       - "apiservice/**"
-      - ".github/workflows/auth.yaml"
+      - ".github/workflows/apiservice.yaml"
 
   pull_request:
     branches: [ main ]
     paths:
       - "apiservice/**"
-      - ".github/workflows/auth.yaml"
+      - ".github/workflows/apiservice.yaml"
 
 jobs:
   lint:
@@ -27,12 +27,14 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1
+          working-directory: apiservice
 
   test:
     runs-on: ubuntu-latest
     steps:
       - name: run tests with docker compose
         run: |
+          cd apiservice
           docker compose -f docker-compose.test.yaml up \
             --build \
             --abort-on-container-exit test \
