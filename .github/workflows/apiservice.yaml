@@ -1,10 +1,17 @@
-name: Audit
+name: "api service audit"
 
 on:
   push:
     branches: [ main ]
+    paths:
+      - "apiservice/**"
+      - ".github/workflows/auth.yaml"
+
   pull_request:
     branches: [ main ]
+    paths:
+      - "apiservice/**"
+      - ".github/workflows/auth.yaml"
 
 jobs:
   lint:
