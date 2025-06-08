@@ -1,0 +1,37 @@
+name: Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.3
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.1
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: run tests with docker compose
+        run: |
+          docker compose -f docker-compose.test.yaml up \
+            --build \
+            --abort-on-container-exit test \
+            --exit-code-from test
+          DOWN_EXIT=$?
+          docker compose -f docker-compose.test.yaml down --volumes
+          exit $DOWN_EXIT
+        env:
+          DOCKER_BUILDKIT: 1
