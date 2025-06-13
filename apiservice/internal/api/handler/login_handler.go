@@ -59,7 +59,7 @@ func (lh *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusUnprocessableEntity)
+		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
 

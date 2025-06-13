@@ -13,7 +13,7 @@ import (
 // If the token is valid, it extracts the user ID from the token and stores it in the request context for downstream handlers.
 // If the token is missing, malformed, invalid, or expired, it responds with HTTP 401 Unauthorized.
 func JwtAuthMiddleware(accessSecret string) func(http.Handler) http.Handler {
-	return func(handler http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHandler := r.Header.Get("Authorization")
 
@@ -39,7 +39,7 @@ func JwtAuthMiddleware(accessSecret string) func(http.Handler) http.Handler {
 			}
 
 			ctx := context.WithValue(r.Context(), contextkeys.UserID, userID)
-			handler.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

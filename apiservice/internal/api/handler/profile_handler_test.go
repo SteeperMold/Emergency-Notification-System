@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/SteeperMold/Emergency-Notification-System/internal/api/route"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/contextkeys"
 	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
 	"github.com/SteeperMold/Emergency-Notification-System/internal/testutils"
@@ -19,15 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
-
-func mockUserMiddleware(userID any) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), contextkeys.UserID, userID)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
 
 func setupProfileServerWithMockMiddleware(tx domain.DBConn, userID any) *mux.Router {
 	logger := zap.NewNop()

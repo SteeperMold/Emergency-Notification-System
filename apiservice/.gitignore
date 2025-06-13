@@ -23,7 +23,7 @@ go.work
 
 bin/*
 .vscode/*
-.idea/*
+../.idea/vcs.xml
 
 .DS_Store
 

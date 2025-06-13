@@ -19,5 +19,5 @@ func NewProfileRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, time
 	ps := service.NewProfileService(ur)
 	ph := handler.NewProfileHandler(ps, logger, timeout)
 
-	mux.HandleFunc("/profile", ph.GetProfile).Methods(http.MethodGet)
+	mux.HandleFunc("/profile", ph.GetProfile).Methods(http.MethodGet, http.MethodOptions)
 }

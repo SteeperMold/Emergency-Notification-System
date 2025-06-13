@@ -20,5 +20,5 @@ func NewLoginRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, timeou
 	ls := service.NewLoginService(ur)
 	lh := handler.NewLoginHandler(ls, logger, timeout, jwtConfig)
 
-	mux.HandleFunc("/login", lh.Login).Methods(http.MethodPost)
+	mux.HandleFunc("/login", lh.Login).Methods(http.MethodPost, http.MethodOptions)
 }

@@ -58,7 +58,7 @@ func (rth *RefreshTokenHandler) RefreshToken(w http.ResponseWriter, r *http.Requ
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusUnprocessableEntity)
+		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
 

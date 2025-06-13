@@ -20,6 +20,7 @@ type AppConfig struct {
 	AppEnv         string
 	Port           string
 	ContextTimeout time.Duration
+	FrontendOrigin string
 	Jwt            JWTConfig
 }
 
@@ -53,6 +54,7 @@ func NewConfig() *Config {
 			AppEnv:         getEnv("APP_ENV", "development"),
 			Port:           getEnv("PORT", "8080"),
 			ContextTimeout: getEnvAsDuration("CONTEXT_TIMEOUT_MS", 2000) * time.Millisecond,
+			FrontendOrigin: getEnv("FRONTEND_ORIGIN", "http://localhost:3000"),
 			Jwt: JWTConfig{
 				AccessSecret:  getEnv("JWT_ACCESS_SECRET", "very_secret1"),
 				AccessExpiry:  getEnvAsDuration("JWT_ACCESS_EXPIRY_H", 2) * time.Hour,

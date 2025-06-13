@@ -20,5 +20,5 @@ func NewSignupRouter(mux *mux.Router, db domain.DBConn, logger *zap.Logger, time
 	ss := service.NewSignupService(ur)
 	sh := handler.NewSignupHandler(ss, logger, timeout, jwtConfig)
 
-	mux.HandleFunc("/signup", sh.Signup).Methods(http.MethodPost)
+	mux.HandleFunc("/signup", sh.Signup).Methods(http.MethodPost, http.MethodOptions)
 }

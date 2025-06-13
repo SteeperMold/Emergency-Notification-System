@@ -20,5 +20,5 @@ func NewRefreshTokenRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger,
 	rts := service.NewRefreshTokenService(ur)
 	rth := handler.NewRefreshTokenHandler(rts, logger, timeout, jwtConfig)
 
-	mux.HandleFunc("/refresh-token", rth.RefreshToken).Methods(http.MethodPost)
+	mux.HandleFunc("/refresh-token", rth.RefreshToken).Methods(http.MethodPost, http.MethodOptions)
 }

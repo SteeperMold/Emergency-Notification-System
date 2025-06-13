@@ -2,7 +2,6 @@ package repository_test
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -13,19 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestMain(m *testing.M) {
-	_, err := testutils.SetupTestDB()
-	if err != nil {
-		panic(err)
-	}
-
-	code := m.Run()
-
-	testutils.TeardownTestDB()
-
-	os.Exit(code)
-}
 
 func TestUserRepository_CreateUser(t *testing.T) {
 	testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
