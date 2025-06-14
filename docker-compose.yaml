@@ -1,0 +1,3 @@
+include:
+  - ./apiservice/docker-compose.yaml
+  - ./frontend/docker-compose.yaml
