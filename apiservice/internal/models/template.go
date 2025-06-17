@@ -6,6 +6,7 @@ import "time"
 type Template struct {
 	ID           int       `json:"id"`
 	UserID       int       `json:"userId"`
+	Name         string    `json:"name"`
 	Body         string    `json:"body"`
 	CreationTime time.Time `json:"creationTime"`
 	UpdateTime   time.Time `json:"updateTime"`

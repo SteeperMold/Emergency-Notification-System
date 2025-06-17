@@ -102,10 +102,10 @@ func TestTemplateService(t *testing.T) {
 		{
 			name:   "CreateTemplate success",
 			method: "CreateTemplate",
-			args:   []interface{}{context.Background(), &models.Template{UserID: 10, Body: "New"}},
+			args:   []interface{}{context.Background(), &models.Template{UserID: 10, Body: "New", Name: "New"}},
 			mockSetup: func(m *MockTemplateRepo) {
 				m.On("CreateTemplate", mock.Anything, mock.MatchedBy(func(x *models.Template) bool {
-					return x.UserID == 10 && x.Body == "New"
+					return x.UserID == 10 && x.Body == "New" && x.Name == "New"
 				})).
 					Return(&models.Template{ID: 3, UserID: 10, Body: "New"}, nil).
 					Once()
@@ -124,10 +124,10 @@ func TestTemplateService(t *testing.T) {
 		{
 			name:   "UpdateTemplate success",
 			method: "UpdateTemplate",
-			args:   []interface{}{context.Background(), 10, 1, &models.Template{Body: "Upd"}},
+			args:   []interface{}{context.Background(), 10, 1, &models.Template{Body: "Upd", Name: "Upd"}},
 			mockSetup: func(m *MockTemplateRepo) {
 				m.On("UpdateTemplate", mock.Anything, 10, 1, mock.MatchedBy(func(x *models.Template) bool {
-					return x.Body == "Upd"
+					return x.Body == "Upd" && x.Name == "Upd"
 				})).
 					Return(&models.Template{ID: 1, UserID: 10, Body: "Upd"}, nil).
 					Once()

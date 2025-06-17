@@ -94,7 +94,7 @@ func TestTemplateHandler(t *testing.T) {
 			name:   "Post_Success",
 			method: http.MethodPost,
 			path:   "/template",
-			body:   map[string]string{"body": "Hello"},
+			body:   map[string]string{"body": "Hello", "name": "name"},
 			useTx:  true,
 			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
 				var uid int
@@ -147,8 +147,8 @@ func TestTemplateHandler(t *testing.T) {
 				).Scan(&uid)
 				require.NoError(t, err)
 				err = tx.QueryRow(ctx,
-					`INSERT INTO message_templates(user_id,body,created_at,updated_at) VALUES($1,$2,$3,$3) RETURNING id`,
-					uid, "T", now,
+					`INSERT INTO message_templates(user_id,name,body,created_at,updated_at) VALUES($1,$2,$3,$4,$4) RETURNING id`,
+					uid, "name", "T", now,
 				).Scan(&tid)
 				require.NoError(t, err)
 				return uid, strconv.Itoa(tid)
@@ -182,9 +182,9 @@ func TestTemplateHandler(t *testing.T) {
 				).Scan(&uid)
 				require.NoError(t, err)
 				err = tx.QueryRow(ctx,
-					`INSERT INTO message_templates(user_id,body,created_at,updated_at)
-					 VALUES($1,$2,now(),now()) RETURNING id`,
-					uid, "orig",
+					`INSERT INTO message_templates(user_id,name,body,created_at,updated_at)
+					 VALUES($1,$2,$3,now(),now()) RETURNING id`,
+					uid, "name", "orig",
 				).Scan(&tid)
 				require.NoError(t, err)
 				return uid, strconv.Itoa(tid)
@@ -196,7 +196,7 @@ func TestTemplateHandler(t *testing.T) {
 			name:   "Put_NotFound",
 			method: http.MethodPut,
 			path:   "/template/",
-			body:   map[string]string{"body": "NewBody"},
+			body:   map[string]string{"body": "NewBody", "name": "newName"},
 			useTx:  true,
 			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
 				// only user, no template
@@ -215,7 +215,7 @@ func TestTemplateHandler(t *testing.T) {
 			name:   "Put_Success",
 			method: http.MethodPut,
 			path:   "/template/",
-			body:   map[string]string{"body": "Updated"},
+			body:   map[string]string{"body": "Updated", "name": "name"},
 			useTx:  true,
 			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
 				var uid, tid int
@@ -225,9 +225,9 @@ func TestTemplateHandler(t *testing.T) {
 				).Scan(&uid)
 				require.NoError(t, err)
 				err = tx.QueryRow(ctx,
-					`INSERT INTO message_templates(user_id,body,created_at,updated_at)
-					 VALUES($1,$2,now(),now()) RETURNING id`,
-					uid, "Original",
+					`INSERT INTO message_templates(user_id,name,body,created_at,updated_at)
+					 VALUES($1,$2,$3,now(),now()) RETURNING id`,
+					uid, "name", "Original",
 				).Scan(&tid)
 				require.NoError(t, err)
 				return uid, strconv.Itoa(tid)
@@ -279,9 +279,9 @@ func TestTemplateHandler(t *testing.T) {
 				).Scan(&uid)
 				require.NoError(t, err)
 				err = tx.QueryRow(ctx,
-					`INSERT INTO message_templates(user_id,body,created_at,updated_at)
-					 VALUES($1,$2,now(),now()) RETURNING id`,
-					uid, "ToDelete",
+					`INSERT INTO message_templates(user_id,name,body,created_at,updated_at)
+					 VALUES($1,$2,$3,now(),now()) RETURNING id`,
+					uid, "name", "ToDelete",
 				).Scan(&tid)
 				require.NoError(t, err)
 				return uid, strconv.Itoa(tid)

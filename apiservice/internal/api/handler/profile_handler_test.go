@@ -64,7 +64,7 @@ func TestProfileHandler_GetProfile(t *testing.T) {
 		{
 			name:         "UserNotFound",
 			userID:       999999,
-			expectedCode: http.StatusInternalServerError,
+			expectedCode: http.StatusNotFound,
 		},
 	}
 

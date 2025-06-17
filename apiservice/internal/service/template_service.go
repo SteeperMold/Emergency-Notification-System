@@ -32,6 +32,10 @@ func (ts *TemplateService) GetTemplateByID(ctx context.Context, userID int, tmpl
 // CreateTemplate validates and creates a new message template.
 // Returns the created Template model or a domain.ErrInvalidTemplate if body length is invalid.
 func (ts *TemplateService) CreateTemplate(ctx context.Context, tmpl *models.Template) (*models.Template, error) {
+	if len(tmpl.Name) == 0 || len(tmpl.Name) > 32 {
+		return nil, domain.ErrInvalidTemplate
+	}
+
 	if len(tmpl.Body) == 0 || len(tmpl.Body) > 256 {
 		return nil, domain.ErrInvalidTemplate
 	}
@@ -42,6 +46,10 @@ func (ts *TemplateService) CreateTemplate(ctx context.Context, tmpl *models.Temp
 // UpdateTemplate validates and updates an existing message template for the user.
 // Returns the updated Template model or a domain.ErrInvalidTemplate / domain.ErrTemplateNotExists as appropriate.
 func (ts *TemplateService) UpdateTemplate(ctx context.Context, userID int, tmplID int, updatedTmpl *models.Template) (*models.Template, error) {
+	if len(updatedTmpl.Name) == 0 || len(updatedTmpl.Name) > 32 {
+		return nil, domain.ErrInvalidTemplate
+	}
+
 	if len(updatedTmpl.Body) == 0 || len(updatedTmpl.Body) > 256 {
 		return nil, domain.ErrInvalidTemplate
 	}

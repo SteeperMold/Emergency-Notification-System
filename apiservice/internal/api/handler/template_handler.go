@@ -138,14 +138,18 @@ func (th *TemplateHandler) Post(w http.ResponseWriter, r *http.Request) {
 
 	newTmpl := &models.Template{
 		UserID: userID,
+		Name:   req.Name,
 		Body:   req.Body,
 	}
 
 	newTmpl, err = th.service.CreateTemplate(ctx, newTmpl)
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidTemplate) {
+		switch {
+		case errors.Is(err, domain.ErrInvalidTemplate):
 			http.Error(w, "invalid template", http.StatusUnprocessableEntity)
-		} else {
+		case errors.Is(err, domain.ErrTemplateAlreadyExists):
+			http.Error(w, "template already exists", http.StatusConflict)
+		default:
 			th.logError("internal server error", r, zap.String("template_body", req.Body), zap.Error(err))
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
@@ -160,7 +164,7 @@ func (th *TemplateHandler) Post(w http.ResponseWriter, r *http.Request) {
 }
 
 // Put updates an existing message template by ID for the authenticated user.
-// Validates input, responds with 200 and updated template or 422/404/500.
+// Validates input, responds with 200 and updated template or 400/422/404/500.
 func (th *TemplateHandler) Put(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), th.contextTimeout)
 	defer cancel()
@@ -191,6 +195,7 @@ func (th *TemplateHandler) Put(w http.ResponseWriter, r *http.Request) {
 
 	updatedTmpl := &models.Template{
 		UserID: userID,
+		Name:   req.Name,
 		Body:   req.Body,
 	}
 
@@ -201,6 +206,8 @@ func (th *TemplateHandler) Put(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid template", http.StatusUnprocessableEntity)
 		case errors.Is(err, domain.ErrTemplateNotExists):
 			http.Error(w, "template not exists", http.StatusNotFound)
+		case errors.Is(err, domain.ErrTemplateAlreadyExists):
+			http.Error(w, "template already exists", http.StatusConflict)
 		default:
 			th.logError("internal server error", r, zap.String("template_body", req.Body), zap.Error(err))
 			http.Error(w, "internal server error", http.StatusInternalServerError)

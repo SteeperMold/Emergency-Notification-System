@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -59,8 +60,12 @@ func (ph *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	profile, err := ph.service.GetUserByID(ctx, userID)
 	if err != nil {
-		ph.logError("internal server error", r, zap.Int("user_id", userID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		if errors.Is(err, domain.ErrUserNotExists) {
+			http.Error(w, "user not exists", http.StatusNotFound)
+		} else {
+			ph.logError("internal server error", r, zap.Int("user_id", userID))
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 

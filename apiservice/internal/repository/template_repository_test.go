@@ -40,9 +40,9 @@ func TestTemplateRepository_GetTemplatesByUserId(t *testing.T) {
 
 		// insert message_templates
 		_, err = tx.Exec(ctx,
-			`INSERT INTO message_templates(user_id, body, created_at, updated_at)
-			 VALUES($1,$2,$3,$3),($1,$4,$3,$3)`,
-			userID, "One", now, "Two",
+			`INSERT INTO message_templates(user_id, name, body, created_at, updated_at)
+			 VALUES($1,$2,$3,$4,$4),($1,$5,$6,$4,$4)`,
+			userID, "name1", "One", now, "name2", "Two",
 		)
 		require.NoError(t, err)
 
@@ -77,9 +77,9 @@ func TestTemplateRepository_GetTemplateById(t *testing.T) {
 		// seed template
 		var tmplID int
 		err = tx.QueryRow(ctx,
-			`INSERT INTO message_templates(user_id, body, created_at, updated_at)
-			 VALUES($1,$2,$3,$3) RETURNING id`,
-			userID, "Hello", now,
+			`INSERT INTO message_templates(user_id, name, body, created_at, updated_at)
+			 VALUES($1,$2,$3,$4,$4) RETURNING id`,
+			userID, "Name", "Hello", now,
 		).Scan(&tmplID)
 		require.NoError(t, err)
 
@@ -134,8 +134,8 @@ func TestTemplateRepository_UpdateTemplate(t *testing.T) {
 		// seed template
 		var tmplID int
 		err = tx.QueryRow(ctx,
-			`INSERT INTO message_templates(user_id, body) VALUES($1,$2) RETURNING id`,
-			userID, "Old",
+			`INSERT INTO message_templates(user_id, name, body) VALUES($1,$2,$3) RETURNING id`,
+			userID, "Old", "Old",
 		).Scan(&tmplID)
 		require.NoError(t, err)
 
@@ -162,8 +162,8 @@ func TestTemplateRepository_DeleteTemplate(t *testing.T) {
 		).Scan(&userID)
 		require.NoError(t, err)
 		err = tx.QueryRow(ctx,
-			`INSERT INTO message_templates(user_id, body) VALUES($1,$2) RETURNING id`,
-			userID, "ToDel",
+			`INSERT INTO message_templates(user_id, name, body) VALUES($1,$2,$3) RETURNING id`,
+			userID, "ToDel", "ToDel",
 		).Scan(&tmplID)
 		require.NoError(t, err)
 
