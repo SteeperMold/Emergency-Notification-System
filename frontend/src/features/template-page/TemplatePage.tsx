@@ -1,55 +1,159 @@
 import React, { useState } from "react";
 
-import { StatusCodes } from "http-status-codes";
-import { Navigate } from "react-router-dom";
-import Api from "src/api";
 import Button from "src/shared/components/Button";
 import Input from "src/shared/components/Input";
-import { useUser } from "src/shared/hooks/useUser";
+import { type CreateTemplateInput, type Template, useTemplates } from "src/shared/hooks/useTemplates";
 
 const TemplatePage = () => {
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useUser();
+  const {
+    templates,
+    isLoading,
+    isError,
+    error,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
+  } = useTemplates();
 
-  if (!user) {
-    return <Navigate to="/"/>;
-  }
+  const [newTemplate, setNewTemplate] = useState<CreateTemplateInput>({ name: "", body: "" });
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [editedValues, setEditedValues] = useState<Partial<Template>>({});
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const formData = new FormData(event.currentTarget);
-    const body = formData.get("body");
-
-    Api.post("/template", { body })
-      .catch(error => {
-        if (error.status === StatusCodes.UNPROCESSABLE_ENTITY) {
-          setError("Указанный шаблон слишком короткий или слишком длинный");
-          return;
-        }
-        setError("Не удалось сохранить шаблон");
-      });
+  const handleChange = (field: "name" | "body") => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setNewTemplate(prevState => ({ ...prevState, [field]: event.target.value }));
   };
 
-  return <>
-    <h1 className="text-2xl text-center">Редактирование шаблона</h1>
+  const handleCreate = () => {
+    const { name, body } = newTemplate;
+    if (!name?.trim() || !body?.trim()) return;
 
-    <form onSubmit={onSubmit} className="mx-auto w-1/4 mt-10 flex flex-col items-center">
-      {error && <h2 className="self-start mb-8 text-xl text-red-600">{error}</h2>}
+    setIsSubmitting(true);
+    createTemplate.mutate(newTemplate, {
+      onSuccess: () => setNewTemplate({ name: "", body: "" }),
+    });
+  };
 
-      <Input
-        required={true}
-        name="body"
-        placeholder="Введие шаблон"
-      />
+  const handleEditClick = (tmpl: Template) => {
+    setEditingTemplate(tmpl);
+    setEditedValues({ name: tmpl.name, body: tmpl.body });
+  };
 
-      <Button
-        className="mt-10"
-      >
-        Сохранить
-      </Button>
-    </form>
-  </>;
+  const handleEditChange = (field: "name" | "body") => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setEditedValues(prev => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingTemplate) {
+      return;
+    }
+
+    updateTemplate.mutate(
+      { ...editingTemplate, ...editedValues },
+      {
+        onSuccess: () => {
+          setEditingTemplate(null);
+          setEditedValues({});
+        },
+      },
+    );
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTemplate(null);
+    setEditedValues({});
+  };
+
+  const handleDelete = (id: number) => {
+    deleteTemplate.mutate(id);
+  };
+
+  if (isLoading) return <p>Загрузка...</p>;
+  if (isError) return <p>Ошибка: {error?.message}</p>;
+
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Шаблоны</h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {templates.map((tmpl) => (
+          <div
+            key={tmpl.id}
+            className="
+              bg-gray-50
+              outline outline-1 outline-gray-200 dark:outline-gray-600
+              rounded-lg p-4
+              shadow-sm hover:shadow transition-shadow
+              flex flex-col justify-between
+            "
+          >
+            {editingTemplate?.id === tmpl.id ? <>
+              <Input
+                value={editedValues.name || ""}
+                onChange={handleEditChange("name")}
+                className="mb-2"
+              />
+              <Input
+                value={editedValues.body || ""}
+                onChange={handleEditChange("body")}
+                className="mb-2"
+              />
+              <div className="flex space-x-2 mt-2">
+                <Button onClick={handleSaveEdit}>Сохранить</Button>
+                <Button variant="outline" onClick={handleCancelEdit}>
+                  Отмена
+                </Button>
+              </div>
+            </> : <>
+              <div className="text-lg font-medium mb-2">{tmpl.name}</div>
+              <div className="text-md text-gray-700 mb-4">
+                {tmpl.body}
+              </div>
+              <div className="flex space-x-2">
+                <Button onClick={() => handleEditClick(tmpl)}>
+                  Изменить
+                </Button>
+                <Button variant="outline" onClick={() => handleDelete(tmpl.id)}>
+                  Удалить
+                </Button>
+              </div>
+            </>}
+          </div>
+        ))}
+
+        <div
+          className="
+            bg-gray-50
+            outline outline-1 outline-gray-200 dark:outline-gray-600
+            rounded-lg p-4
+            shadow-sm hover:shadow transition-shadow
+            flex flex-col justify-between
+          "
+        >
+          <h3 className="text-lg font-semibold mb-2">Добавить шаблон</h3>
+          <Input
+            placeholder="Название шаблона"
+            value={newTemplate.name}
+            onChange={handleChange("name")}
+            className="mb-2"
+          />
+          <Input
+            placeholder="Текст шаблона"
+            value={newTemplate.body}
+            onChange={handleChange("body")}
+            className="mb-4"
+          />
+          <Button
+            onClick={handleCreate}
+            disabled={isSubmitting}
+            className="mt-auto"
+          >
+            {isSubmitting ? "Создание..." : "Создать"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default TemplatePage;

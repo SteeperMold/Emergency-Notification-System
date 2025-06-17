@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
@@ -12,10 +13,18 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1, refetchOnWindowFocus: false },
+  },
+});
+
 root.render(
-  <UserProvider>
-    <BrowserRouter>
-      <App/>
-    </BrowserRouter>
-  </UserProvider>,
+  <QueryClientProvider client={queryClient}>
+    <UserProvider>
+      <BrowserRouter>
+        <App/>
+      </BrowserRouter>
+    </UserProvider>
+  </QueryClientProvider>,
 );
