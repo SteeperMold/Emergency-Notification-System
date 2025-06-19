@@ -10,7 +10,9 @@ const Navbar = () => {
   return (
     <nav className="flex justify-between items-center py-[2.5vh]">
       <div>
-        <Link to="/" className="text-[3vh] ml-10">Главная</Link>
+        <Link to="/" className="text-[3vh] mx-10">Главная</Link>
+        <NavButton to="/template" className="text-lg mr-6">Шаблоны сообщений</NavButton>
+        <NavButton to="/contacts" className="text-lg">Контакты</NavButton>
       </div>
 
       <div className="mr-2 flex items-center">
