@@ -1,0 +1,24 @@
+package route
+
+import (
+	"github.com/SteeperMold/Emergency-Notification-System/internal/api/handler"
+	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/internal/repository"
+	"github.com/SteeperMold/Emergency-Notification-System/internal/service"
+	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+	"net/http"
+	"time"
+)
+
+func NewContactsRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, timeout time.Duration) {
+	cr := repository.NewContactsRepository(db)
+	cs := service.NewContactsService(cr)
+	ch := handler.NewContactsHandler(cs, logger, timeout)
+
+	mux.HandleFunc("/contacts", ch.Get).Methods(http.MethodGet, http.MethodOptions)
+	mux.HandleFunc("/contacts/{id}", ch.GetByID).Methods(http.MethodGet, http.MethodOptions)
+	mux.HandleFunc("/contacts", ch.Post).Methods(http.MethodPost, http.MethodOptions)
+	mux.HandleFunc("/contacts/{id}", ch.Put).Methods(http.MethodPut, http.MethodOptions)
+	mux.HandleFunc("/contacts/{id}", ch.Delete).Methods(http.MethodDelete, http.MethodOptions)
+}

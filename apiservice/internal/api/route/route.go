@@ -28,6 +28,7 @@ func Serve(app *bootstrap.Application) {
 
 	NewProfileRoute(private, db, logger, timeout)
 	NewTemplateRoute(private, db, logger, timeout)
+	NewContactsRoute(private, db, logger, timeout)
 
 	log.Fatal(http.ListenAndServe(":"+app.Config.App.Port, r))
 }
