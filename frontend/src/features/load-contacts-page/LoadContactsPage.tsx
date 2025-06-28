@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 
 import { HttpStatusCode } from "axios";
+import { useNavigate } from "react-router-dom";
 import Api from "src/api";
 import Button from "src/shared/components/Button";
 import NavButton from "src/shared/components/NavButton";
@@ -12,6 +13,8 @@ const LoadContactsPage = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const navigate = useNavigate();
 
   const onButtonClick = () => {
     setError(null);
@@ -30,10 +33,10 @@ const LoadContactsPage = () => {
     const form = new FormData();
     form.append("file", file);
 
-    Api.post("/load-contacts", form)
+    Api.post("/load-contacts", form, { headers: { "Content-Type": "multipart/form-data" } })
       .then(res => {
         if (res.status === HttpStatusCode.Accepted) {
-          /* empty */
+          navigate("/");
         } else {
           setError("Не удалось загрузить файл");
           if (inputRef.current) inputRef.current.value = "";
