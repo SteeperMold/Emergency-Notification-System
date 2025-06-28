@@ -1,16 +1,4 @@
-.PHONY: up test down lint flush
-
-up:
-	docker compose up \
-		--build \
-		--abort-on-container-exit apiservice \
-		--exit-code-from apiservice; \
-	DOWN_EXIT=$$?; \
-	docker compose down; \
-	exit $$DOWN_EXIT
-
-down:
-	docker compose down
+.PHONY: test lint
 
 test:
 	docker compose -f docker-compose.test.yaml up \
@@ -23,6 +11,3 @@ test:
 
 lint:
 	golangci-lint run ./...
-
-flush:
-	docker compose down --volumes

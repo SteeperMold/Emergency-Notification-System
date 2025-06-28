@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/mail"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
 

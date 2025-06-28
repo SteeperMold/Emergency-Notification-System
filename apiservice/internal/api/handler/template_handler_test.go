@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/api/route"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/testutils"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/route"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,7 +32,7 @@ func setupTemplateServer(tx domain.DBConn, userID any) *mux.Router {
 	return r
 }
 
-type tc struct {
+type templateTC struct {
 	name           string
 	method         string
 	path           string
@@ -45,7 +45,7 @@ type tc struct {
 }
 
 func TestTemplateHandler(t *testing.T) {
-	cases := []tc{
+	cases := []templateTC{
 		{
 			name:           "Get_NoUserID",
 			method:         http.MethodGet,
@@ -313,7 +313,7 @@ func TestTemplateHandler(t *testing.T) {
 func runTemplateTest(
 	t *testing.T,
 	tx domain.DBConn,
-	tc tc,
+	tc templateTC,
 	userID any,
 	tmplID string,
 ) {

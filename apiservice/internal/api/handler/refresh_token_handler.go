@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/bootstrap"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/tokenutils"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/bootstrap"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/tokenutils"
 	"go.uber.org/zap"
 )
 

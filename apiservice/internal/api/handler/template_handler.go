@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/contextkeys"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/contextkeys"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )

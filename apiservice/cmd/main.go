@@ -3,8 +3,9 @@ package main
 import (
 	"log"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/api/route"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/bootstrap"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/adapter/consumers"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/route"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/bootstrap"
 )
 
 func main() {
@@ -12,7 +13,10 @@ func main() {
 	defer app.LoggerSync()
 	defer app.CloseDBConnection()
 
-	route.Serve(app)
+	_, cancelConsumers := consumers.ServeConsumers(app)
+	defer cancelConsumers()
 
 	log.Println("started up successfully")
+
+	route.Serve(app)
 }

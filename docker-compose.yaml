@@ -1,3 +1,87 @@
 include:
   - ./apiservice/docker-compose.yaml
+  - ./contacts-worker/docker-compose.yaml
   - ./frontend/docker-compose.yaml
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.9.2
+    ports:
+      - "${ZOOKEEPER_CLIENT_PORT}:${ZOOKEEPER_CLIENT_PORT}"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "${ZOOKEEPER_CLIENT_PORT}"
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.9.2
+    depends_on:
+      - zookeeper
+    ports:
+      - "${KAFKA_ADVERTISED_PORT}:${KAFKA_ADVERTISED_PORT}"
+    environment:
+      KAFKA_BROKER_ID: "${KAFKA_BROKER_ID}"
+      KAFKA_ZOOKEEPER_CONNECT: "${KAFKA_ZOOKEEPER_CONNECT}"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://${KAFKA_ADVERTISED_HOST}:${KAFKA_ADVERTISED_PORT}"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  init-kafka:
+    image: confluentinc/cp-kafka:7.9.2
+    depends_on:
+      - kafka
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      '
+      until kafka-topics --bootstrap-server kafka:${KAFKA_ADVERTISED_PORT} --list; do
+        echo "Waiting for Kafka…"
+        sleep 1
+      done
+
+      echo "Creating kafka topics"
+      for T in $$(echo $KAFKA_TOPICS | tr "," " "); do
+        kafka-topics \
+          --bootstrap-server kafka:${KAFKA_ADVERTISED_PORT} \
+          --create \
+          --if-not-exists \
+          --topic "$$T" \
+          --replication-factor 1 \
+          --partitions 10
+      done
+      
+      echo -e "Successfully created the following topics:"
+      kafka-topics --bootstrap-server kafka:${KAFKA_ADVERTISED_PORT} --list
+      '
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "${MINIO_PORT}:${MINIO_PORT}"
+      - "${MINIO_UI_PORT}:${MINIO_UI_PORT}"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_USER}"
+      MINIO_ROOT_PASSWORD: "${MINIO_PASSWORD}"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":${MINIO_UI_PORT}"
+
+  init-minio:
+    image: minio/minio:latest
+    depends_on:
+      - minio
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      '
+      until mc alias set myminio http://minio:${MINIO_PORT} \
+      "${MINIO_USER}" "${MINIO_PASSWORD}"; do
+        echo "Waiting for MinIO…"
+        sleep 1
+      done
+      
+      for B in $$(echo $S3_BUCKETS | tr "," " "); do 
+        mc mb --ignore-existing myminio/$$B
+      done
+      '
+
+volumes:
+  minio_data:

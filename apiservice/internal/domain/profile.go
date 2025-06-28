@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 )
 
 // ProfileService defines the interface for retrieving user profile information.

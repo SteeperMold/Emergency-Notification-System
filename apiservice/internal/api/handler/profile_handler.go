@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/contextkeys"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/contextkeys"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
 	"go.uber.org/zap"
 )
 

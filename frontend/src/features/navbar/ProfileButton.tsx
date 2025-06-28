@@ -30,8 +30,10 @@ const ProfileButton = ({ className }: ProfileButtonProps) => {
       </div>
 
       {isDropdownOpen && (
-        <div className="absolute z-10 top-20 flex flex-col items-center p-2">
-          <NavButton to="/settings" className="text-lg">Настройки</NavButton>
+        <div
+          onClick={() => setIsDropdownOpen(false)}
+          className="absolute z-10 top-20 flex flex-col items-center p-2"
+        >
           <NavButton to="/logout" className="text-lg">Выйти из аккаунта</NavButton>
         </div>
       )}

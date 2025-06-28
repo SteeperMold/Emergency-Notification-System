@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -11,8 +12,10 @@ import (
 
 // Config holds all application and database configuration.
 type Config struct {
-	App AppConfig
-	DB  DBConfig
+	App   *AppConfig
+	DB    *DBConfig
+	S3    *S3Config
+	Kafka *KafkaConfig
 }
 
 // AppConfig holds general application settings.
@@ -21,7 +24,7 @@ type AppConfig struct {
 	Port           string
 	ContextTimeout time.Duration
 	FrontendOrigin string
-	Jwt            JWTConfig
+	Jwt            *JWTConfig
 }
 
 // JWTConfig holds JWT secret keys and expiry durations for access and refresh tokens.
@@ -42,6 +45,22 @@ type DBConfig struct {
 	ConnectionTimeout time.Duration
 }
 
+// S3Config defines parameters for connecting to an S3-compatible service.
+type S3Config struct {
+	ID       string
+	Key      string
+	Region   string
+	Endpoint string
+	Buckets  map[string]string
+}
+
+// KafkaConfig defines Kafka broker addresses and topic names.
+type KafkaConfig struct {
+	KafkaAddrs     []string
+	Topics         map[string]string
+	ConsumerGroups map[string]string
+}
+
 // NewConfig loads configuration from environment variables with defaults.
 func NewConfig() *Config {
 	err := godotenv.Load()
@@ -50,25 +69,44 @@ func NewConfig() *Config {
 	}
 
 	return &Config{
-		App: AppConfig{
+		App: &AppConfig{
 			AppEnv:         getEnv("APP_ENV", "development"),
 			Port:           getEnv("PORT", "8080"),
 			ContextTimeout: getEnvAsDuration("CONTEXT_TIMEOUT_MS", 2000) * time.Millisecond,
 			FrontendOrigin: getEnv("FRONTEND_ORIGIN", "http://localhost:3000"),
-			Jwt: JWTConfig{
+			Jwt: &JWTConfig{
 				AccessSecret:  getEnv("JWT_ACCESS_SECRET", "very_secret1"),
 				AccessExpiry:  getEnvAsDuration("JWT_ACCESS_EXPIRY_H", 2) * time.Hour,
 				RefreshSecret: getEnv("JWT_REFRESH_SECRET", "very_secret2"),
 				RefreshExpiry: getEnvAsDuration("JWT_REFRESH_EXPIRY_H", 720) * time.Hour,
 			},
 		},
-		DB: DBConfig{
+		DB: &DBConfig{
 			Host:              getEnv("DB_HOST", "postgres"),
 			Port:              getEnv("DB_PORT", "5432"),
 			Name:              getEnv("DB_NAME", "devdb"),
 			User:              getEnv("DB_USER", "user"),
 			Password:          getEnv("DB_PASSWORD", "123456789admin"),
 			ConnectionTimeout: getEnvAsDuration("DB_CONNECTION_TIMEOUT_MS", 10000) * time.Millisecond,
+		},
+		S3: &S3Config{
+			ID:       getEnv("S3_SECRET_ID", "miniouser"),
+			Key:      getEnv("S3_SECRET_KEY", "miniopassword"),
+			Region:   getEnv("S3_REGION", "us-east-1"),
+			Endpoint: getEnv("S3_ENDPOINT", "http://minio:9000"),
+			Buckets: map[string]string{
+				"contacts": getEnv("S3_BUCKET_CONTACTS", "contacts-bucket"),
+			},
+		},
+		Kafka: &KafkaConfig{
+			KafkaAddrs: getEnvAsSlice("KAFKA_ADDRS", []string{"consumers:9092"}, ","),
+			Topics: map[string]string{
+				"contacts.loading.tasks":   getEnv("KAFKA_TOPIC_CONTACTS_LOADING_TASKS", "contacts.loading.tasks"),
+				"contacts.loading.results": getEnv("KAFKA_TOPIC_CONTACTS_LOADING_RESULTS", "contacts.loading.results"),
+			},
+			ConsumerGroups: map[string]string{
+				"contacts.loading.results": getEnv("KAFKA_CONSUMER_GROUP_CONTACTS_LOADING_RESULTS", "contacts.loading.results-group"),
+			},
 		},
 	}
 }
@@ -96,4 +134,26 @@ func getEnvAsInt(name string, defaultVal int) int {
 func getEnvAsDuration(name string, defaultVal time.Duration) time.Duration {
 	value := getEnvAsInt(name, int(defaultVal))
 	return time.Duration(value)
+}
+
+func getEnvAsSlice(name string, defaultVal []string, sep string) []string {
+	valueStr := getEnv(name, "")
+	if valueStr == "" {
+		return defaultVal
+	}
+
+	split := strings.Split(valueStr, sep)
+	result := make([]string, 0, len(split))
+	for _, v := range split {
+		trimmed := strings.TrimSpace(v)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+
+	if len(result) == 0 {
+		return defaultVal
+	}
+
+	return result
 }

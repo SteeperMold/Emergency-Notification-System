@@ -3,7 +3,10 @@ package service_test
 import (
 	"context"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -35,4 +38,23 @@ func (m *MockRepository) GetUserByID(ctx context.Context, id int) (*models.User,
 		return user.(*models.User), args.Error(1)
 	}
 	return nil, args.Error(1)
+}
+
+type MockS3Client struct {
+	mock.Mock
+}
+
+func (m *MockS3Client) PutObjectWithContext(ctx context.Context, input *s3.PutObjectInput, opts ...request.Option) (*s3.PutObjectOutput, error) {
+	args := m.Called(ctx, input)
+	out, _ := args.Get(0).(*s3.PutObjectOutput)
+	return out, args.Error(1)
+}
+
+type MockKafkaWriter struct {
+	mock.Mock
+}
+
+func (m *MockKafkaWriter) WriteMessages(ctx context.Context, msgs ...kafka.Message) error {
+	args := m.Called(ctx, msgs)
+	return args.Error(0)
 }

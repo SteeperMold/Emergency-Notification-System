@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/testutils"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
 )
 
 func TestMain(m *testing.M) {
