@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/contextkeys"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/tokenutils"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/contextkeys"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/tokenutils"
 )
 
 // JwtAuthMiddleware returns an HTTP middleware that validates the JWT access token from the Authorization header.

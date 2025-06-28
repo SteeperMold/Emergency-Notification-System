@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 )
 
 var (

@@ -9,7 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

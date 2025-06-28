@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,12 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/api/route"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/testutils"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/route"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func setupContactsServer(tx domain.DBConn, userID any) *mux.Router {
@@ -339,7 +339,12 @@ func runContactsTest(
 	require.NoError(t, err)
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.Fatal("failed to close resp.Body")
+		}
+	}(resp.Body)
 
 	bodyBytes, _ := io.ReadAll(resp.Body)
 

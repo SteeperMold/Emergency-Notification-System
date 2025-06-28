@@ -3,19 +3,25 @@ package domain
 import (
 	"context"
 	"fmt"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 )
 
 var (
+	// ErrContactNotExists indicates a lookup or deletion on a non-existent contact.
 	ErrContactNotExists = fmt.Errorf("contact doesn't exist")
-
-	ErrInvalidContact      = fmt.Errorf("invalid contact")
-	ErrInvalidContactName  = fmt.Errorf("%w: invalid name", ErrInvalidContact)
+	// ErrInvalidContact is the base error for contact validation failures.
+	ErrInvalidContact = fmt.Errorf("invalid contact")
+	// ErrInvalidContactName indicates the contact's name is empty or too long.
+	ErrInvalidContactName = fmt.Errorf("%w: invalid name", ErrInvalidContact)
+	// ErrInvalidContactPhone indicates the contact's phone number failed validation.
 	ErrInvalidContactPhone = fmt.Errorf("%w: invalid phone", ErrInvalidContact)
-
+	// ErrContactAlreadyExists indicates a uniqueness constraint violation on create/update.
 	ErrContactAlreadyExists = fmt.Errorf("contact already exists")
 )
 
+// ContactsRepository defines CRUD operations against the persistence layer.
+// Implementations should handle SQL or ORM details and map domain errors.
 type ContactsRepository interface {
 	GetContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error)
 	GetContactByID(ctx context.Context, userID, contactID int) (*models.Contact, error)
@@ -24,6 +30,8 @@ type ContactsRepository interface {
 	DeleteContact(ctx context.Context, userID, contactID int) error
 }
 
+// ContactsService defines business logic methods for contacts.
+// It validates input and delegates persistence to ContactsRepository.
 type ContactsService interface {
 	GetContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error)
 	GetContactByID(ctx context.Context, userID, contactID int) (*models.Contact, error)
@@ -32,11 +40,13 @@ type ContactsService interface {
 	DeleteContact(ctx context.Context, userID, contactID int) error
 }
 
+// PostContactRequest defines the payload for creating a new contact via API.
 type PostContactRequest struct {
 	Name  string `json:"name"`
 	Phone string `json:"phone"`
 }
 
+// PutContactRequest defines the payload for updating an existing contact.
 type PutContactRequest struct {
 	Name  string `json:"name"`
 	Phone string `json:"phone"`

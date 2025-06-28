@@ -3,22 +3,26 @@ package repository
 import (
 	"context"
 	"errors"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// ContactsRepository handles CRUD operations on the contacts table.
 type ContactsRepository struct {
 	db domain.DBConn
 }
 
+// NewContactsRepository constructs a ContactsRepository backed by the given DB connection.
 func NewContactsRepository(db domain.DBConn) *ContactsRepository {
 	return &ContactsRepository{
 		db: db,
 	}
 }
 
+// GetContactsByUserID returns all contacts belonging to a specific user.
 func (cr *ContactsRepository) GetContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error) {
 	const q = `
 		SELECT id, user_id, name, phone, created_at, updated_at
@@ -53,6 +57,8 @@ func (cr *ContactsRepository) GetContactsByUserID(ctx context.Context, userID in
 	return contacts, nil
 }
 
+// GetContactByID retrieves a single contact for a user by its contact ID.
+// Returns domain.ErrContactNotExists if no row is found.
 func (cr *ContactsRepository) GetContactByID(ctx context.Context, userID int, contactID int) (*models.Contact, error) {
 	const q = `
 		SELECT id, user_id, name, phone, created_at, updated_at
@@ -76,6 +82,8 @@ func (cr *ContactsRepository) GetContactByID(ctx context.Context, userID int, co
 	return &c, nil
 }
 
+// CreateContact inserts a new contact and returns the created record.
+// If the unique constraint on (user_id, name, phone) is violated, returns domain.ErrContactAlreadyExists.
 func (cr *ContactsRepository) CreateContact(ctx context.Context, contact *models.Contact) (*models.Contact, error) {
 	const q = `
 		INSERT INTO contacts (user_id, name, phone)
@@ -99,6 +107,8 @@ func (cr *ContactsRepository) CreateContact(ctx context.Context, contact *models
 	return &c, nil
 }
 
+// UpdateContact modifies an existing contact's name and phone, updating its timestamp.
+// Returns domain.ErrContactNotExists if no row matches, or domain.ErrContactAlreadyExists on unique violation.
 func (cr *ContactsRepository) UpdateContact(ctx context.Context, userID int, contactID int, updatedContact *models.Contact) (*models.Contact, error) {
 	const q = `
 		UPDATE contacts
@@ -131,6 +141,7 @@ func (cr *ContactsRepository) UpdateContact(ctx context.Context, userID int, con
 	return &c, nil
 }
 
+// DeleteContact removes a contact record for a user. Returns domain.ErrContactNotExists if no deletion occurred.
 func (cr *ContactsRepository) DeleteContact(ctx context.Context, userID int, contactID int) error {
 	const q = `
 		DELETE

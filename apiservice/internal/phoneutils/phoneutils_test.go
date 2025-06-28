@@ -3,7 +3,7 @@ package phoneutils_test
 import (
 	"testing"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/phoneutils"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/phoneutils"
 	"github.com/stretchr/testify/assert"
 )
 

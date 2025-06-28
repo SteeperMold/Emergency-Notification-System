@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/repository"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/testutils"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/repository"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

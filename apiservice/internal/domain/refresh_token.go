@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 )
 
 // RefreshTokenService defines the interface for operations related to refresh tokens.

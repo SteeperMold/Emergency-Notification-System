@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Contact represents a user's contact information stored in the system.
 type Contact struct {
 	ID           int       `json:"id"`
 	UserID       int       `json:"userId"`

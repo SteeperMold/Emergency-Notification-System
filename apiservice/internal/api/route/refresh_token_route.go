@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/api/handler"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/bootstrap"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/repository"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/service"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/handler"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/bootstrap"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/repository"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/service"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )

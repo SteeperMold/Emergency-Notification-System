@@ -1,16 +1,18 @@
 package route
 
 import (
-	"github.com/SteeperMold/Emergency-Notification-System/internal/api/handler"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/repository"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/service"
-	"github.com/gorilla/mux"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/handler"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/repository"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/service"
+	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
+// NewContactsRoute registers CRUD endpoints for managing contacts.
 func NewContactsRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, timeout time.Duration) {
 	cr := repository.NewContactsRepository(db)
 	cs := service.NewContactsService(cr)

@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 )
 
 // RefreshTokenService provides functionality to retrieve user data using their ID,

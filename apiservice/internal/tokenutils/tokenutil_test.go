@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
-	"github.com/SteeperMold/Emergency-Notification-System/internal/tokenutils"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/tokenutils"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -54,6 +54,14 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      kafka:
+        condition: service_started
+      init-kafka:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      init-minio:
+        condition: service_completed_successfully
 
 volumes:
   pgdata:

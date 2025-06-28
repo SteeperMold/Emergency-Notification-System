@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 

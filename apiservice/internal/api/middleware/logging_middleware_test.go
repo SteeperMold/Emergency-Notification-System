@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/internal/api/middleware"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/middleware"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
