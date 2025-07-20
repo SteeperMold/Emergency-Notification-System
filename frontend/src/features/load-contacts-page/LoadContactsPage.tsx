@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { HttpStatusCode } from "axios";
 import { useNavigate } from "react-router-dom";
 import Api from "src/api";
@@ -13,8 +14,8 @@ const LoadContactsPage = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   const onButtonClick = () => {
     setError(null);
@@ -34,8 +35,9 @@ const LoadContactsPage = () => {
     form.append("file", file);
 
     Api.post("/load-contacts", form, { headers: { "Content-Type": "multipart/form-data" } })
-      .then(res => {
+      .then(async res => {
         if (res.status === HttpStatusCode.Accepted) {
+          await qc.invalidateQueries({ queryKey: ["contacts"] });
           navigate("/");
         } else {
           setError("Не удалось загрузить файл");
