@@ -1,0 +1,21 @@
+services:
+  sender-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      mode: replicated
+      replicas: 50
+    env_file:
+      - .env
+    volumes:
+      - ./tmp/sms-dev:/tmp/sms-dev
+    depends_on:
+      kafka:
+        condition: service_started
+      init-kafka:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      init-minio:
+        condition: service_completed_successfully

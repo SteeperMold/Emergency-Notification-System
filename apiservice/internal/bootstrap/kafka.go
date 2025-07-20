@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"github.com/segmentio/kafka-go"
+	"time"
 )
 
 // KafkaFactory produces configured Kafka writers.
@@ -24,9 +25,10 @@ func NewKafkaFactory(kafkaConfig *KafkaConfig) *KafkaFactory {
 // The returned writer uses the factory's broker addresses and balancer.
 func (kf *KafkaFactory) NewWriter(topic string) *kafka.Writer {
 	return &kafka.Writer{
-		Addr:     kafka.TCP(kf.Addrs...),
-		Balancer: kf.Balancer,
-		Topic:    topic,
+		Addr:         kafka.TCP(kf.Addrs...),
+		Balancer:     kf.Balancer,
+		Topic:        topic,
+		BatchTimeout: 10 * time.Millisecond,
 	}
 }
 

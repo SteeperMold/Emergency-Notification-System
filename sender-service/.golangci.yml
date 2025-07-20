@@ -1,0 +1,41 @@
+version: "2"
+run:
+  timeout: 2m
+
+output:
+  formats:
+    text:
+      colors: true
+      print-issued-lines: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - revive
+    - gocyclo
+
+  settings:
+    revive:
+      severity: warning
+      rules:
+        - name: var-naming
+        - name: indent-error-flow
+        - name: error-naming
+        - name: exported
+        - name: blank-imports
+        - name: context-as-argument
+
+    gocyclo:
+      min-complexity: 15
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

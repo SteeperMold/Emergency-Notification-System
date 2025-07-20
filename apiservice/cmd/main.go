@@ -16,7 +16,7 @@ func main() {
 	_, cancelConsumers := consumers.ServeConsumers(app)
 	defer cancelConsumers()
 
-	log.Println("started up successfully")
+	log.Printf("listening on port %v", app.Config.App.Port)
 
 	route.Serve(app)
 }

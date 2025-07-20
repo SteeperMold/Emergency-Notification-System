@@ -60,7 +60,7 @@ func NewConfig() *Config {
 			Bucket:   getEnv("S3_BUCKET", "contacts-bucket"),
 		},
 		Kafka: &KafkaConfig{
-			KafkaAddrs: getEnvAsSlice("KAFKA_ADDRS", []string{"consumers:9092"}, ","),
+			KafkaAddrs: getEnvAsSlice("KAFKA_ADDRS", []string{"kafka:9092"}, ","),
 			Topics: map[string]string{
 				"contacts.loading.tasks":   getEnv("KAFKA_TOPIC_CONTACTS_LOADING_TASKS", "contacts.loading.tasks"),
 				"contacts.loading.results": getEnv("KAFKA_TOPIC_CONTACTS_LOADING_RESULTS", "contacts.loading.results"),

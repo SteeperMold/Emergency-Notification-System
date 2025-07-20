@@ -11,3 +11,19 @@ type Contact struct {
 	CreationTime time.Time `json:"creationTime"`
 	UpdateTime   time.Time `json:"updateTime"`
 }
+
+type SlimContact struct {
+	Name  string `json:"name"`
+	Phone string `json:"phone"`
+}
+
+func ToSlim(contacts []*Contact) []*SlimContact {
+	slim := make([]*SlimContact, len(contacts))
+	for i, c := range contacts {
+		slim[i] = &SlimContact{
+			Name:  c.Name,
+			Phone: c.Phone,
+		}
+	}
+	return slim
+}
