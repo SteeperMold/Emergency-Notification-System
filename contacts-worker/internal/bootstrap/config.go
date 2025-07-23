@@ -13,6 +13,7 @@ import (
 // Config holds all top-level configuration sections.
 type Config struct {
 	App   *AppConfig
+	DB    *DBConfig
 	S3    *S3Config
 	Kafka *KafkaConfig
 }
@@ -21,6 +22,17 @@ type Config struct {
 type AppConfig struct {
 	AppEnv         string
 	ContextTimeout time.Duration
+	BatchSize      int
+}
+
+// DBConfig holds PostgreSQL database connection settings.
+type DBConfig struct {
+	Host              string
+	Port              string
+	Name              string
+	User              string
+	Password          string
+	ConnectionTimeout time.Duration
 }
 
 // S3Config holds credentials and endpoint for S3 storage.
@@ -51,6 +63,15 @@ func NewConfig() *Config {
 		App: &AppConfig{
 			AppEnv:         getEnv("APP_ENV", "development"),
 			ContextTimeout: getEnvAsDuration("CONTEXT_TIMEOUT_MS", 2000) * time.Millisecond,
+			BatchSize:      getEnvAsInt("BATCH_SIZE", 100000),
+		},
+		DB: &DBConfig{
+			Host:              getEnv("DB_HOST", "apiservice"),
+			Port:              getEnv("DB_PORT", "5432"),
+			Name:              getEnv("DB_NAME", "api_service_postgres"),
+			User:              getEnv("DB_USER", "user"),
+			Password:          getEnv("DB_PASSWORD", "123456789admin"),
+			ConnectionTimeout: getEnvAsDuration("DB_CONNECTION_TIMEOUT_MS", 10000) * time.Millisecond,
 		},
 		S3: &S3Config{
 			ID:       getEnv("S3_SECRET_ID", "miniouser"),

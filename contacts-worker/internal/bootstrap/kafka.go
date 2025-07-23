@@ -20,16 +20,6 @@ func NewKafkaFactory(kafkaConfig *KafkaConfig) *KafkaFactory {
 	}
 }
 
-// NewWriter creates a kafka.Writer for the specified topic.
-// The returned writer uses the factory's broker addresses and balancer.
-func (kf *KafkaFactory) NewWriter(topic string) *kafka.Writer {
-	return &kafka.Writer{
-		Addr:     kafka.TCP(kf.Addrs...),
-		Balancer: kf.Balancer,
-		Topic:    topic,
-	}
-}
-
 // NewReader creates a kafka.Reader for the specified topic and consumer group.
 // The reader is configured with the factory’s broker addresses and a maximum
 // message fetch size of 10MB.

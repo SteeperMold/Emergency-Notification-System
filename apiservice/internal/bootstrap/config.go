@@ -56,9 +56,8 @@ type S3Config struct {
 
 // KafkaConfig defines Kafka broker addresses and topic names.
 type KafkaConfig struct {
-	KafkaAddrs     []string
-	Topics         map[string]string
-	ConsumerGroups map[string]string
+	KafkaAddrs []string
+	Topics     map[string]string
 }
 
 // NewConfig loads configuration from environment variables with defaults.
@@ -84,7 +83,7 @@ func NewConfig() *Config {
 		DB: &DBConfig{
 			Host:              getEnv("DB_HOST", "apiservice"),
 			Port:              getEnv("DB_PORT", "5432"),
-			Name:              getEnv("DB_NAME", "api-service-postgres"),
+			Name:              getEnv("DB_NAME", "api_service_postgres"),
 			User:              getEnv("DB_USER", "user"),
 			Password:          getEnv("DB_PASSWORD", "123456789admin"),
 			ConnectionTimeout: getEnvAsDuration("DB_CONNECTION_TIMEOUT_MS", 10000) * time.Millisecond,
@@ -101,12 +100,8 @@ func NewConfig() *Config {
 		Kafka: &KafkaConfig{
 			KafkaAddrs: getEnvAsSlice("KAFKA_ADDRS", []string{"kafka:9092"}, ","),
 			Topics: map[string]string{
-				"contacts.loading.tasks":   getEnv("KAFKA_TOPIC_CONTACTS_LOADING_TASKS", "contacts.loading.tasks"),
-				"contacts.loading.results": getEnv("KAFKA_TOPIC_CONTACTS_LOADING_RESULTS", "contacts.loading.results"),
-				"notification.requests":    getEnv("KAFKA_TOPIC_NOTIFICATION_REQUESTS", "notification.requests"),
-			},
-			ConsumerGroups: map[string]string{
-				"contacts.loading.results": getEnv("KAFKA_CONSUMER_GROUP_CONTACTS_LOADING_RESULTS", "contacts.loading.results-group"),
+				"contacts.loading.tasks": getEnv("KAFKA_TOPIC_CONTACTS_LOADING_TASKS", "contacts.loading.tasks"),
+				"notification.requests":  getEnv("KAFKA_TOPIC_NOTIFICATION_REQUESTS", "notification.requests"),
 			},
 		},
 	}

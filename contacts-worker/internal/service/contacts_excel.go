@@ -1,88 +1,38 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"io"
-	"runtime"
-	"sync"
-	"sync/atomic"
-
-	"github.com/segmentio/kafka-go"
 	"github.com/xuri/excelize/v2"
+	"io"
 )
 
-func (cs *ContactsService) processExcel(ctx context.Context, userID int, file io.Reader) (total int, err error) {
+func (cs *ContactsService) createExcelRowProvider(file io.Reader) (RowProvider, error) {
 	f, rowsIter, err := cs.getRowsFromExcel(file)
-	defer func(f *excelize.File) {
-		if cerr := f.Close(); cerr != nil {
-			err = errors.Join(err, cerr)
-		}
-	}(f)
-	defer func(rowsIter *excelize.Rows) {
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
 		if cerr := rowsIter.Close(); cerr != nil {
 			err = errors.Join(err, cerr)
 		}
-	}(rowsIter)
-	if err != nil {
-		return 0, err
-	}
-
-	var count32 int32
-	workers := runtime.NumCPU() * 2
-	jobs := make(chan []string, workers*100)
-	var wg sync.WaitGroup
-
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			const batchSize = 100
-			var batch []kafka.Message
-
-			for cols := range jobs {
-				if len(cols) < 2 {
-					continue
-				}
-				formattedName, nameOk := cs.validateName(cols[0])
-				formattedPhone, phoneOk := cs.validatePhone(cols[1])
-				if !nameOk || !phoneOk {
-					continue
-				}
-				value, err := cs.makeMessage(userID, formattedName, formattedPhone)
-				if err != nil {
-					continue
-				}
-				batch = append(batch, kafka.Message{
-					Value: value,
-				})
-				if len(batch) >= batchSize {
-					cs.flushBatch(ctx, &batch, &count32)
-				}
-			}
-			if len(batch) > 0 {
-				cs.flushBatch(ctx, &batch, &count32)
-			}
-		}()
-	}
-
-	for rowsIter.Next() {
-		cols, err := rowsIter.Columns()
-		if err != nil {
-			continue
+		if cerr := f.Close(); cerr != nil {
+			err = errors.Join(err, cerr)
 		}
-		jobs <- cols
-	}
-	if err := rowsIter.Error(); err != nil {
-		close(jobs)
-		wg.Wait()
-		return int(atomic.LoadInt32(&count32)), err
+	}()
+
+	provider := func(jobs chan<- []string) error {
+		for rowsIter.Next() {
+			cols, err := rowsIter.Columns()
+			if err != nil {
+				continue
+			}
+			jobs <- cols
+		}
+		return rowsIter.Error()
 	}
 
-	close(jobs)
-	wg.Wait()
-	return int(atomic.LoadInt32(&count32)), nil
+	return provider, err
 }
 
 func (cs *ContactsService) getRowsFromExcel(file io.Reader) (*excelize.File, *excelize.Rows, error) {
