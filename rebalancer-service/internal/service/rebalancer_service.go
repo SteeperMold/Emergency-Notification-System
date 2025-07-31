@@ -44,10 +44,10 @@ func (rs *RebalancerService) Start(ctx context.Context) {
 }
 
 func (rs *RebalancerService) rebalance(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, rs.contextTimeout)
+	dbCtx, cancel := context.WithTimeout(ctx, rs.contextTimeout)
 	defer cancel()
 
-	notifications, err := rs.repository.FetchPending(ctx, rs.batchSize)
+	notifications, err := rs.repository.FetchAndUpdatePending(dbCtx, rs.batchSize)
 	if err != nil {
 		rs.logger.Error("failed to fetch pending notifications", zap.Error(err))
 		return
@@ -64,6 +64,7 @@ func (rs *RebalancerService) rebalance(ctx context.Context) {
 			ID:             n.ID,
 			Text:           n.Text,
 			RecipientPhone: n.RecipientPhone,
+			Attempts:       n.Attempts,
 		})
 		if err != nil {
 			rs.logger.Error("failed to marshal task", zap.Error(err))

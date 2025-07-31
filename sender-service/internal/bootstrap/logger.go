@@ -13,7 +13,7 @@ func NewLogger(appEnv string) *zap.Logger {
 	var err error
 
 	switch appEnv {
-	case "production":
+	case "production", "test":
 		logger, err = zap.NewProduction()
 	case "development":
 		logger, err = zap.NewDevelopment()

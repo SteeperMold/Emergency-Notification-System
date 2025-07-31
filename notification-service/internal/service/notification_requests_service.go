@@ -5,45 +5,36 @@ import (
 	"encoding/json"
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/models"
-	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 )
 
 type NotificationRequestsService struct {
 	repository  domain.NotificationRepository
 	kafkaWriter domain.KafkaWriter
+	batchSize   int
 }
 
-func NewNotificationRequestsService(r domain.NotificationRepository, kw domain.KafkaWriter) *NotificationRequestsService {
+func NewNotificationRequestsService(r domain.NotificationRepository, kw domain.KafkaWriter, batchSize int) *NotificationRequestsService {
 	return &NotificationRequestsService{
 		repository:  r,
 		kafkaWriter: kw,
+		batchSize:   batchSize,
 	}
 }
 
-func (nrs *NotificationRequestsService) SaveNotification(ctx context.Context, nr *domain.NotificationRequest) error {
-	notifications := make([]*models.Notification, len(nr.Contacts))
-
-	for i, c := range nr.Contacts {
-		notifications[i] = &models.Notification{
-			ID:             uuid.New(),
-			UserID:         nr.UserID,
-			Text:           nr.Template,
-			RecipientPhone: c.Phone,
-		}
-	}
-
-	err := nrs.repository.CreateMultipleNotifications(ctx, notifications)
+func (nrs *NotificationRequestsService) SaveNotifications(ctx context.Context, ntfs *[]*models.Notification) error {
+	err := nrs.repository.CreateMultipleNotifications(ctx, *ntfs)
 	if err != nil {
 		return err
 	}
 
-	msgs := make([]kafka.Message, len(notifications))
-	for i, n := range notifications {
+	msgs := make([]kafka.Message, len(*ntfs))
+	for i, n := range *ntfs {
 		taskBytes, err := json.Marshal(&domain.SendNotificationTask{
 			ID:             n.ID,
 			Text:           n.Text,
 			RecipientPhone: n.RecipientPhone,
+			Attempts:       1,
 		})
 		if err != nil {
 			return err
@@ -51,9 +42,8 @@ func (nrs *NotificationRequestsService) SaveNotification(ctx context.Context, nr
 		msgs[i] = kafka.Message{Value: taskBytes}
 	}
 
-	const batchSize = 1000
-	for start := 0; start < len(msgs); start += batchSize {
-		end := start + batchSize
+	for start := 0; start < len(msgs); start += nrs.batchSize {
+		end := start + nrs.batchSize
 		if end > len(msgs) {
 			end = len(msgs)
 		}

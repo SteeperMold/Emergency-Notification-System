@@ -7,11 +7,12 @@ import (
 )
 
 type NotificationRepository interface {
-	FetchPending(ctx context.Context, limit int) ([]*models.Notification, error)
+	FetchAndUpdatePending(ctx context.Context, limit int) ([]*models.Notification, error)
 }
 
 type SendNotificationTask struct {
 	ID             uuid.UUID `json:"id"`
 	Text           string    `json:"text"`
 	RecipientPhone string    `json:"recipientPhone"`
+	Attempts       int       `json:"attempts"`
 }

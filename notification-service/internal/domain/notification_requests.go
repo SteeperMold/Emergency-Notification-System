@@ -12,13 +12,13 @@ var (
 )
 
 type NotificationRequestsService interface {
-	SaveNotification(ctx context.Context, notification *NotificationRequest) error
+	SaveNotifications(ctx context.Context, notifications *[]*models.Notification) error
 }
 
 type NotificationRepository interface {
 	CreateMultipleNotifications(ctx context.Context, notifications []*models.Notification) error
 	GetNotificationByID(ctx context.Context, id uuid.UUID) (*models.Notification, error)
-	ChangeNotificationStatus(ctx context.Context, id uuid.UUID, newStatus models.NotificationStatus) (*models.Notification, error)
+	ChangeNotificationStatus(ctx context.Context, id uuid.UUID, newStatus models.NotificationStatus) error
 }
 
 type NotificationRequest struct {
@@ -31,4 +31,5 @@ type SendNotificationTask struct {
 	ID             uuid.UUID `json:"id"`
 	Text           string    `json:"text"`
 	RecipientPhone string    `json:"recipientPhone"`
+	Attempts       int       `json:"attempts"`
 }

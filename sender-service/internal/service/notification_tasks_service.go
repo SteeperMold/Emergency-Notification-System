@@ -22,24 +22,19 @@ func NewNotificationTasksService(r domain.NotificationTasksRepository, ss domain
 }
 
 func (nts *NotificationTasksService) SendNotification(ctx context.Context, task *domain.NotificationTask) error {
-	ntf, err := nts.repository.GetNotificationByID(ctx, task.ID)
+	err := nts.smsSender.SendSMS(task.RecipientPhone, task.Text, task.ID.String())
 	if err != nil {
-		return err
-	}
-
-	err = nts.smsSender.SendSMS(task.RecipientPhone, task.Text, ntf.ID.String())
-	if err != nil {
-		if ntf.Attempts < nts.maxAttempts {
+		if task.Attempts < nts.maxAttempts {
 			// exponential backoff: base * 2^(attempts-1)
-			delay := time.Second * (1 << (ntf.Attempts - 1))
+			delay := time.Second * (1 << (task.Attempts - 1))
 			nextRunAt := time.Now().Add(delay)
 
-			_, repoErr := nts.repository.Reschedule(ctx, ntf.ID, nextRunAt)
+			_, repoErr := nts.repository.Reschedule(ctx, task.ID, nextRunAt)
 			if repoErr != nil {
 				return fmt.Errorf("send failed: %w; reschedule failed: %v", err, repoErr)
 			}
 		} else {
-			_, repoErr := nts.repository.MarkFailed(ctx, ntf.ID)
+			_, repoErr := nts.repository.MarkFailed(ctx, task.ID)
 			if repoErr != nil {
 				return fmt.Errorf("send failed: %w; mark failed error: %v", err, repoErr)
 			}

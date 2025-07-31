@@ -42,7 +42,7 @@ func (s *TwilioCallbackService) ProcessCallback(ctx context.Context, idStr, stat
 		}
 	}
 
-	_, err = s.repository.ChangeNotificationStatus(ctx, id, newStatus)
+	err = s.repository.ChangeNotificationStatus(ctx, id, newStatus)
 	if err != nil {
 		return err
 	}

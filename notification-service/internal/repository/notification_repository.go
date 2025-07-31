@@ -58,25 +58,22 @@ func (nr *NotificationRepository) GetNotificationByID(ctx context.Context, id uu
 	return &n, nil
 }
 
-func (nr *NotificationRepository) ChangeNotificationStatus(ctx context.Context, id uuid.UUID, newStatus models.NotificationStatus) (*models.Notification, error) {
+func (nr *NotificationRepository) ChangeNotificationStatus(ctx context.Context, id uuid.UUID, newStatus models.NotificationStatus) error {
 	const q = `
 		UPDATE notifications
 		SET status = $2,
 		    updated_at = NOW()
 		WHERE id = $1
-		RETURNING id, user_id, text, recipient_phone, status, attempts, next_run_at, created_at, updated_at
 	`
 
-	row := nr.db.QueryRow(ctx, q, id, newStatus)
-
-	var n models.Notification
-	err := row.Scan(&n.ID, &n.UserID, &n.Text, &n.RecipientPhone, &n.Status, &n.Attempts, &n.NextRunAt, &n.CreatedAt, &n.UpdatedAt)
+	_, err := nr.db.Exec(ctx, q, id, newStatus)
+	
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.ErrNotificationNotExists
+			return domain.ErrNotificationNotExists
 		}
-		return nil, err
+		return err
 	}
 
-	return &n, nil
+	return nil
 }

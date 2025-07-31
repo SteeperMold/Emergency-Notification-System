@@ -35,7 +35,9 @@ func Serve(app *bootstrap.Application) {
 	NewLoadContactsRoute(private, logger, app.S3Client, contactsBucket, app.KafkaFactory, contactsTopic, timeout)
 
 	notificationTopic := app.Config.Kafka.Topics["notification.requests"]
-	NewSendNotificationRoute(private, db, logger, app.KafkaFactory, notificationTopic, timeout)
+	contactsPerMessage := app.Config.App.ContactsPerKafkaMessage
+	writerBatchTimeout := app.Config.Kafka.NotificationRequestsBatchTimeout
+	NewSendNotificationRoute(private, db, logger, app.KafkaFactory, notificationTopic, timeout, contactsPerMessage, writerBatchTimeout)
 
 	log.Fatal(http.ListenAndServe(":"+app.Config.App.Port, r))
 }

@@ -16,21 +16,20 @@ func NewNotificationRepository(db domain.DBConn) *NotificationRepository {
 	}
 }
 
-func (nr *NotificationRepository) FetchPending(ctx context.Context, limit int) ([]*models.Notification, error) {
+func (nr *NotificationRepository) FetchAndUpdatePending(ctx context.Context, limit int) ([]*models.Notification, error) {
 	const q = `
 		WITH to_dequeue AS (
 			SELECT id
 			FROM notifications
-			WHERE status = 'pending'
-			  AND next_run_at <= NOW()
+			WHERE (status = 'pending' AND next_run_at <= now())
+			   OR (status = 'in_flight' AND updated_at <= now() - interval '5 minute')
 			ORDER BY next_run_at
-			LIMIT $1
-			FOR UPDATE SKIP LOCKED 
+			LIMIT $1 FOR UPDATE SKIP LOCKED
 		)
 		UPDATE notifications n
 		SET status     = 'in_flight',
 			attempts   = attempts + 1,
-			updated_at = NOW()
+			updated_at = now()
 		FROM to_dequeue d
 		WHERE n.id = d.id
 		RETURNING n.id, n.user_id, n.text, n.recipient_phone, n.status, n.attempts, n.next_run_at, n.created_at, n.updated_at

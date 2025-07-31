@@ -16,6 +16,8 @@ func NewSmsSender(appEnv string, twilioCfg *TwilioConfig) domain.SmsSender {
 		smsSender = sms.NewSmsSender(twilioCfg.AccountSID, twilioCfg.AuthToken, twilioCfg.FromNumber, twilioCfg.StatusCallbackEndpoint)
 	case "development":
 		smsSender, err = sms.NewDevSmsSender("/tmp/sms-dev", twilioCfg.StatusCallbackEndpoint, 0.05, 0.2, 3*time.Second)
+	case "test":
+		smsSender = sms.NewTestSmsSender(twilioCfg.StatusCallbackEndpoint, 0.05, 0.2, 3*time.Second)
 	}
 
 	if err != nil {

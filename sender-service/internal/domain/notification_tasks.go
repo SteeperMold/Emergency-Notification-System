@@ -26,4 +26,5 @@ type NotificationTask struct {
 	ID             uuid.UUID `json:"id"`
 	Text           string    `json:"text"`
 	RecipientPhone string    `json:"recipientPhone"`
+	Attempts       int       `json:"attempts"`
 }

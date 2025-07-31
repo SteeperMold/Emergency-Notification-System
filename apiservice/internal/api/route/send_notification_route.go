@@ -12,12 +12,12 @@ import (
 	"time"
 )
 
-func NewSendNotificationRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, kafkaFactory *bootstrap.KafkaFactory, topic string, timeout time.Duration) {
+func NewSendNotificationRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, kafkaFactory *bootstrap.KafkaFactory, topic string, timeout time.Duration, contactsPerMessage int, writerBatchTimeout time.Duration) {
 	cr := repository.NewContactsRepository(db)
 	tr := repository.NewTemplateRepository(db)
-	kw := kafkaFactory.NewWriter(topic)
+	kw := kafkaFactory.NewWriter(topic, bootstrap.WithBatchTimeout(writerBatchTimeout))
 
-	sns := service.NewSendNotificationService(cr, tr, kw)
+	sns := service.NewSendNotificationService(cr, tr, kw, contactsPerMessage)
 	snh := handler.NewSendNotificationHandler(sns, logger, timeout)
 
 	mux.HandleFunc("/send-notification/{id}", snh.SendNotification).Methods(http.MethodPost, http.MethodOptions)

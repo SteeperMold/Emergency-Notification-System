@@ -19,10 +19,13 @@ type Config struct {
 
 // AppConfig holds general application settings.
 type AppConfig struct {
-	AppEnv         string
-	MaxAttempts    int
-	Port           string
-	ContextTimeout time.Duration
+	AppEnv                            string
+	MaxAttempts                       int
+	Port                              string
+	ContextTimeout                    time.Duration
+	NotificationConsumerBatchSize     int
+	NotificationConsumerFlushInterval time.Duration
+	NotificationTasksWriterBatchSize  int
 }
 
 // DBConfig holds PostgreSQL database connection settings.
@@ -37,9 +40,10 @@ type DBConfig struct {
 
 // KafkaConfig defines Kafka broker addresses and topic names.
 type KafkaConfig struct {
-	KafkaAddrs    []string
-	Topics        map[string]string
-	ConsumerGroup string
+	KafkaAddrs                          []string
+	Topics                              map[string]string
+	ConsumerGroup                       string
+	NotificationTasksWriterBatchTimeout time.Duration
 }
 
 type TwilioConfig struct {
@@ -58,10 +62,13 @@ func NewConfig() *Config {
 
 	return &Config{
 		App: &AppConfig{
-			AppEnv:         getEnv("APP_ENV", "development"),
-			MaxAttempts:    getEnvAsInt("MAX_NOTIFICATION_ATTEMPTS", 5),
-			Port:           getEnv("PORT", "8081"),
-			ContextTimeout: getEnvAsDuration("CONTEXT_TIMEOUT_MS", 2000) * time.Millisecond,
+			AppEnv:                            getEnv("APP_ENV", "development"),
+			MaxAttempts:                       getEnvAsInt("MAX_NOTIFICATION_ATTEMPTS", 5),
+			Port:                              getEnv("PORT", "8081"),
+			ContextTimeout:                    getEnvAsDuration("CONTEXT_TIMEOUT_MS", 2000) * time.Millisecond,
+			NotificationConsumerBatchSize:     getEnvAsInt("NOTIFICATION_CONSUMER_BATCH_SIZE", 200_000),
+			NotificationConsumerFlushInterval: getEnvAsDuration("NOTIFICATION_CONSUMER_FLUSH_INTERVAL_MS", 5000) * time.Millisecond,
+			NotificationTasksWriterBatchSize:  getEnvAsInt("NOTIFICATION_TASKS_WRITER_BATCH_SIZE", 10_000),
 		},
 		DB: &DBConfig{
 			Host:              getEnv("DB_HOST", "notification-service"),
@@ -77,7 +84,8 @@ func NewConfig() *Config {
 				"notification.requests": getEnv("KAFKA_TOPIC_NOTIFICATION_REQUESTS", "notification.requests"),
 				"notification.tasks":    getEnv("KAFKA_TOPIC_NOTIFICATION_TASKS", "notification.tasks"),
 			},
-			ConsumerGroup: getEnv("KAFKA_CONSUMER_GROUP", "notification-requests-group"),
+			ConsumerGroup:                       getEnv("KAFKA_CONSUMER_GROUP", "notification-requests-group"),
+			NotificationTasksWriterBatchTimeout: getEnvAsDuration("KAFKA_NOTIFICATION_TASKS_WRITER_BATCH_TIMEOUT_MS", 1) * time.Millisecond,
 		},
 		Twilio: &TwilioConfig{
 			AuthToken:              getEnv("TWILIO_AUTH_TOKEN", "twilio-auth-token"),

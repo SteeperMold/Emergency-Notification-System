@@ -12,13 +12,15 @@ type SendNotificationService struct {
 	contactsRepository domain.ContactsRepository
 	templateRepository domain.TemplateRepository
 	kafkaWriter        domain.KafkaWriter
+	contactsPerMessage int
 }
 
-func NewSendNotificationService(cr domain.ContactsRepository, tr domain.TemplateRepository, kw domain.KafkaWriter) *SendNotificationService {
+func NewSendNotificationService(cr domain.ContactsRepository, tr domain.TemplateRepository, kw domain.KafkaWriter, cpm int) *SendNotificationService {
 	return &SendNotificationService{
 		contactsRepository: cr,
 		templateRepository: tr,
 		kafkaWriter:        kw,
+		contactsPerMessage: cpm,
 	}
 }
 
@@ -38,9 +40,8 @@ func (sns *SendNotificationService) SendNotification(ctx context.Context, userId
 
 	slimContacts := models.ToSlim(contacts)
 
-	const batchSize = 1000
-	for start := 0; start < len(slimContacts); start += batchSize {
-		end := start + batchSize
+	for start := 0; start < len(slimContacts); start += sns.contactsPerMessage {
+		end := start + sns.contactsPerMessage
 		if end > len(slimContacts) {
 			end = len(slimContacts)
 		}

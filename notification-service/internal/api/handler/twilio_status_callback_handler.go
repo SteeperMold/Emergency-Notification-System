@@ -23,7 +23,7 @@ func NewTwilioStatusCallbackHandler(s domain.TwilioCallbackService, logger *zap.
 }
 
 func (h *TwilioStatusCallbackHandler) ProcessCallback(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), h.contextTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), h.contextTimeout)
 	defer cancel()
 
 	err := r.ParseForm()

@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+type WriterOption func(w *kafka.Writer)
+
+func WithBatchTimeout(d time.Duration) WriterOption {
+	return func(w *kafka.Writer) {
+		w.BatchTimeout = d
+	}
+}
+
 // KafkaFactory produces configured Kafka writers.
 // It encapsulates address list and load-balancing strategy.
 type KafkaFactory struct {
@@ -23,23 +31,14 @@ func NewKafkaFactory(kafkaConfig *KafkaConfig) *KafkaFactory {
 
 // NewWriter creates a kafka.Writer for the specified topic.
 // The returned writer uses the factory's broker addresses and balancer.
-func (kf *KafkaFactory) NewWriter(topic string) *kafka.Writer {
-	return &kafka.Writer{
-		Addr:         kafka.TCP(kf.Addrs...),
-		Balancer:     kf.Balancer,
-		Topic:        topic,
-		BatchTimeout: 10 * time.Millisecond,
-	}
-}
-
-// NewReader creates a kafka.Reader for the specified topic and consumer group.
-// The reader is configured with the factory’s broker addresses and a maximum
-// message fetch size of 10MB.
-func (kf *KafkaFactory) NewReader(topic string, groupID string) *kafka.Reader {
-	return kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  kf.Addrs,
-		GroupID:  groupID,
+func (kf *KafkaFactory) NewWriter(topic string, opts ...WriterOption) *kafka.Writer {
+	writer := &kafka.Writer{
+		Addr:     kafka.TCP(kf.Addrs...),
 		Topic:    topic,
-		MaxBytes: 10e6, // 10MB
-	})
+		Balancer: kf.Balancer,
+	}
+	for _, opt := range opts {
+		opt(writer)
+	}
+	return writer
 }

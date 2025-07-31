@@ -20,11 +20,12 @@ func main() {
 
 	kafkaCfg := app.Config.Kafka
 	notificationRequestsReader := app.KafkaFactory.NewReader(kafkaCfg.Topics["notification.requests"], kafkaCfg.ConsumerGroup)
-	sendTasksWriter := app.KafkaFactory.NewWriter(kafkaCfg.Topics["notification.tasks"])
+	sendTasksWriter := app.KafkaFactory.NewWriter(kafkaCfg.Topics["notification.tasks"], bootstrap.WithBatchTimeout(kafkaCfg.NotificationTasksWriterBatchTimeout))
 
 	nr := repository.NewNotificationRepository(app.DB)
-	nrs := service.NewNotificationRequestsService(nr, sendTasksWriter)
-	nrc := consumers.NewNotificationRequestsConsumer(nrs, notificationRequestsReader, app.Logger, app.Config.App.ContextTimeout)
+	appCfg := app.Config.App
+	nrs := service.NewNotificationRequestsService(nr, sendTasksWriter, appCfg.NotificationTasksWriterBatchSize)
+	nrc := consumers.NewNotificationRequestsConsumer(nrs, notificationRequestsReader, app.Logger, appCfg.ContextTimeout, appCfg.NotificationConsumerBatchSize, appCfg.NotificationConsumerFlushInterval)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	sigs := make(chan os.Signal, 1)

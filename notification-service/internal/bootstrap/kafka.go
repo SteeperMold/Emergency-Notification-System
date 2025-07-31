@@ -1,6 +1,17 @@
 package bootstrap
 
-import "github.com/segmentio/kafka-go"
+import (
+	"github.com/segmentio/kafka-go"
+	"time"
+)
+
+type WriterOption func(w *kafka.Writer)
+
+func WithBatchTimeout(d time.Duration) WriterOption {
+	return func(w *kafka.Writer) {
+		w.BatchTimeout = d
+	}
+}
 
 // KafkaFactory produces configured Kafka writers.
 // It encapsulates address list and load-balancing strategy.
@@ -20,12 +31,16 @@ func NewKafkaFactory(kafkaConfig *KafkaConfig) *KafkaFactory {
 
 // NewWriter creates a kafka.Writer for the specified topic.
 // The returned writer uses the factory's broker addresses and balancer.
-func (kf *KafkaFactory) NewWriter(topic string) *kafka.Writer {
-	return &kafka.Writer{
+func (kf *KafkaFactory) NewWriter(topic string, opts ...WriterOption) *kafka.Writer {
+	writer := &kafka.Writer{
 		Addr:     kafka.TCP(kf.Addrs...),
-		Balancer: kf.Balancer,
 		Topic:    topic,
+		Balancer: kf.Balancer,
 	}
+	for _, opt := range opts {
+		opt(writer)
+	}
+	return writer
 }
 
 // NewReader creates a kafka.Reader for the specified topic and consumer group.
