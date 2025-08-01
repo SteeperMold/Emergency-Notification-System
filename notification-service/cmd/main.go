@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/adapter/consumers"
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/api/route"
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/bootstrap"
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/repository"
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/service"
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func main() {

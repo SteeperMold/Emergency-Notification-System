@@ -3,21 +3,26 @@ package handler
 import (
 	"context"
 	"errors"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/contextkeys"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
-	"net/http"
-	"strconv"
-	"time"
 )
 
+// SendNotificationHandler handles HTTP requests to initiate notification sending.
+// It extracts authentication context, parameters, and delegates to the SendNotificationService.
+// Responses are HTTP status codes indicating success or error.
 type SendNotificationHandler struct {
 	service        domain.SendNotificationService
 	logger         *zap.Logger
 	contextTimeout time.Duration
 }
 
+// NewSendNotificationHandler constructs a SendNotificationHandler.
 func NewSendNotificationHandler(s domain.SendNotificationService, logger *zap.Logger, timeout time.Duration) *SendNotificationHandler {
 	return &SendNotificationHandler{
 		service:        s,
@@ -40,6 +45,9 @@ func (snh *SendNotificationHandler) logError(msg string, r *http.Request, fields
 	snh.logger.Error(msg, allFields...)
 }
 
+// SendNotification handles POST /send-notification/{id}.
+// It reads the user ID from context, parses the template ID path param,
+// and calls the service to send notifications
 func (snh *SendNotificationHandler) SendNotification(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), snh.contextTimeout)
 	defer cancel()

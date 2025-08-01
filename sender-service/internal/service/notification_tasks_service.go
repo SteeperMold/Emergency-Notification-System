@@ -3,16 +3,21 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/domain"
 	"time"
+
+	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/domain"
 )
 
+// NotificationTasksService coordinates the delivery and retry logic for SMS notification tasks.
+// It sends notifications using the provided SmsSender and handles rescheduling or marking as failed
+// based on the result and number of attempts.
 type NotificationTasksService struct {
 	repository  domain.NotificationTasksRepository
 	smsSender   domain.SmsSender
 	maxAttempts int
 }
 
+// NewNotificationTasksService creates a new NotificationTasksService.
 func NewNotificationTasksService(r domain.NotificationTasksRepository, ss domain.SmsSender, maxAttempts int) *NotificationTasksService {
 	return &NotificationTasksService{
 		repository:  r,
@@ -21,6 +26,9 @@ func NewNotificationTasksService(r domain.NotificationTasksRepository, ss domain
 	}
 }
 
+// SendNotification attempts to send a notification task via SMS.
+// If sending fails and the attempt count is below the maximum, it reschedules the task using exponential backoff.
+// If the maximum number of attempts is reached, it marks the task as permanently failed.
 func (nts *NotificationTasksService) SendNotification(ctx context.Context, task *domain.NotificationTask) error {
 	err := nts.smsSender.SendSMS(task.RecipientPhone, task.Text, task.ID.String())
 	if err != nil {

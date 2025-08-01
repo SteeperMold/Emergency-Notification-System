@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/repository"
 	"log"
 	"os"
 	"os/signal"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/adapter/consumers"
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/bootstrap"
+	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/repository"
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/service"
 )
 

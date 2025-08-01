@@ -2,21 +2,27 @@ package repository
 
 import (
 	"context"
+
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/models"
 	"github.com/jackc/pgx/v5"
 )
 
+// ContactsRepository provides methods to persist contacts in bulk.
 type ContactsRepository struct {
 	db domain.DBConn
 }
 
+// NewContactsRepository creates a new ContactsRepository with the given DB connection.
 func NewContactsRepository(db domain.DBConn) *ContactsRepository {
 	return &ContactsRepository{
 		db: db,
 	}
 }
 
+// SaveContacts inserts a slice of Contact models into the database in bulk.
+// It stages records in a temporary table, then copies them into the main contacts table,
+// ignoring any duplicates on (user_id, phone). All operations are executed in a transaction.
 func (cr *ContactsRepository) SaveContacts(ctx context.Context, contacts []*models.Contact) error {
 	tx, err := cr.db.Begin(ctx)
 	if err != nil {

@@ -1,12 +1,19 @@
 package bootstrap
 
 import (
-	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/sms"
 	"log"
 	"time"
+
+	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/sms"
 )
 
+// NewSmsSender initializes and returns a domain.SmsSender implementation
+// based on the provided application environment.
+//
+// In "production", it returns a real Twilio-backed sender.
+// In "development", it returns a file-based sender that simulates SMS delivery and saves messages locally.
+// In "test", it returns an in-memory sender that simulates sending and callbacks.
 func NewSmsSender(appEnv string, twilioCfg *TwilioConfig) domain.SmsSender {
 	var smsSender domain.SmsSender
 	var err error

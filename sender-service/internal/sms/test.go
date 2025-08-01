@@ -14,14 +14,18 @@ type TestSendError struct {
 	retryable bool
 }
 
+// Error returns the error message for TestSendError.
 func (e TestSendError) Error() string {
 	return e.Message
 }
 
+// Retryable indicates whether the error is retryable or not.
 func (e TestSendError) Retryable() bool {
 	return e.retryable
 }
 
+// TestSmsSender is a mock SMS sender used for testing purposes.
+// It simulates SMS send failures and delivery callbacks with configurable probabilities and delays.
 type TestSmsSender struct {
 	CallbackBaseURL  string
 	FailRate         float64       // 0.0–1.0 chance of send failure
@@ -30,6 +34,7 @@ type TestSmsSender struct {
 	rng              *rand.Rand
 }
 
+// NewTestSmsSender creates and returns a new TestSmsSender.
 func NewTestSmsSender(callbackBaseURL string, failRate, cbFailRate float64, cbDelay time.Duration) *TestSmsSender {
 	return &TestSmsSender{
 		CallbackBaseURL:  callbackBaseURL,
@@ -40,6 +45,10 @@ func NewTestSmsSender(callbackBaseURL string, failRate, cbFailRate float64, cbDe
 	}
 }
 
+// SendSMS simulates sending an SMS and schedules a callback with a delay.
+// It randomly fails sending based on the configured FailRate,
+// and the callback can simulate success or failure based on CallbackFailRate.
+// Returns a retryable TestSendError if sending fails.
 func (d *TestSmsSender) SendSMS(to, body, notificationID string) error {
 	if d.rng.Float64() < d.FailRate {
 		return TestSendError{

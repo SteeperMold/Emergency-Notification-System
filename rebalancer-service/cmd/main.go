@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/bootstrap"
-	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/repository"
-	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/service"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/bootstrap"
+	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/repository"
+	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/service"
 )
 
 func main() {

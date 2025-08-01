@@ -1,12 +1,16 @@
 package bootstrap
 
 import (
-	"github.com/segmentio/kafka-go"
 	"time"
+
+	"github.com/segmentio/kafka-go"
 )
 
+// WriterOption configures optional parameters for a Kafka writer.
 type WriterOption func(w *kafka.Writer)
 
+// WithBatchTimeout returns a WriterOption that sets a custom
+// batch timeout for flushing messages to Kafka.
 func WithBatchTimeout(d time.Duration) WriterOption {
 	return func(w *kafka.Writer) {
 		w.BatchTimeout = d

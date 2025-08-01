@@ -2,16 +2,17 @@ package service
 
 import (
 	"context"
-	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/models"
-	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/phoneutils"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/models"
+	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/phoneutils"
 )
 
-type RowProvider func(jobsCh chan<- []string) error
+type rowProvider func(jobsCh chan<- []string) error
 
-func (cs *ContactsService) ingestAndSave(ctx context.Context, userID int, provider RowProvider) (int, error) {
+func (cs *ContactsService) ingestAndSave(ctx context.Context, userID int, provider rowProvider) (int, error) {
 	var total32 int32
 
 	jobsCh := make(chan []string, runtime.NumCPU()*2)

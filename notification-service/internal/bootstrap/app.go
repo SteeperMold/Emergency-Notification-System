@@ -1,8 +1,9 @@
 package bootstrap
 
 import (
-	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Application holds the core components of the app.

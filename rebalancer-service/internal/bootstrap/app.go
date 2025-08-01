@@ -30,6 +30,7 @@ func (app *Application) LoggerSync() {
 	LoggerSync(app.Logger)
 }
 
+// CloseDBConnection safely closes the database connection pool.
 func (app *Application) CloseDBConnection() {
 	CloseDBConnection(app.DB)
 }

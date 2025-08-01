@@ -1,10 +1,12 @@
 package models
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
+// Notification represents a single notification record in the system.
 type Notification struct {
 	ID             uuid.UUID
 	UserID         int

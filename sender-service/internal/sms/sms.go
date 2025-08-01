@@ -1,46 +1,57 @@
 package sms
 
 import (
-	"github.com/twilio/twilio-go"
-	api "github.com/twilio/twilio-go/rest/api/v2010"
 	"net/http"
 	"net/url"
+
+	"github.com/twilio/twilio-go"
+	api "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
+// TwilioSendError represents an error returned by the Twilio SMS sender.
+// It includes an error code, message, and a flag indicating if the error is retryable.
 type TwilioSendError struct {
 	Code      int
 	Message   string
 	retryable bool
 }
 
+// Error returns the error message for TwilioSendError.
 func (e TwilioSendError) Error() string {
 	return e.Message
 }
 
+// Retryable indicates whether the TwilioSendError is considered retryable.
 func (e TwilioSendError) Retryable() bool {
 	return e.retryable
 }
 
-type SmsSender struct {
+// Sender sends SMS messages using Twilio.
+// It also registers a status callback for delivery reporting.
+type Sender struct {
 	client          *twilio.RestClient
 	fromNumber      string
 	callbackBaseURL string
 }
 
-func NewSmsSender(accountSID, authToken, fromNumber, callbackBaseURL string) *SmsSender {
+// NewSmsSender initializes and returns a new SmsSender.
+func NewSmsSender(accountSID, authToken, fromNumber, callbackBaseURL string) *Sender {
 	client := twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: accountSID,
 		Password: authToken,
 	})
 
-	return &SmsSender{
+	return &Sender{
 		client:          client,
 		fromNumber:      fromNumber,
 		callbackBaseURL: callbackBaseURL,
 	}
 }
 
-func (s *SmsSender) SendSMS(to, body, notificationID string) error {
+// SendSMS sends an SMS message using Twilio's API.
+// It sets a status callback for delivery tracking and returns a TwilioSendError
+// if sending fails or if Twilio returns an error code.
+func (s *Sender) SendSMS(to, body, notificationID string) error {
 	cb, err := url.Parse(s.callbackBaseURL)
 	if err != nil {
 		return err

@@ -3,12 +3,15 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/domain"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
-	"time"
 )
 
+// RebalancerService coordinates fetching pending notifications from storage
+// and re-publishing them to a Kafka topic for processing by sender workers.
 type RebalancerService struct {
 	repository     domain.NotificationRepository
 	kafkaWriter    domain.KafkaWriter
@@ -18,6 +21,7 @@ type RebalancerService struct {
 	contextTimeout time.Duration
 }
 
+// NewRebalancerService constructs a new RebalancerService
 func NewRebalancerService(r domain.NotificationRepository, kw domain.KafkaWriter, logger *zap.Logger, batchSize int, interval, timeout time.Duration) *RebalancerService {
 	return &RebalancerService{
 		repository:     r,
@@ -29,6 +33,8 @@ func NewRebalancerService(r domain.NotificationRepository, kw domain.KafkaWriter
 	}
 }
 
+// Start launches the periodic rebalancing loop. It ticks at the configured
+// interval, invoking rebalance() until the context is cancelled.
 func (rs *RebalancerService) Start(ctx context.Context) {
 	ticker := time.NewTicker(rs.interval)
 	defer ticker.Stop()

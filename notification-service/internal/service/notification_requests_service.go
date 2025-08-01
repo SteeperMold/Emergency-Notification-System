@@ -3,17 +3,21 @@ package service
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/models"
 	"github.com/segmentio/kafka-go"
 )
 
+// NotificationRequestsService coordinates persistence of new notifications
+// and dispatching tasks to Kafka for downstream processing.
 type NotificationRequestsService struct {
 	repository  domain.NotificationRepository
 	kafkaWriter domain.KafkaWriter
 	batchSize   int
 }
 
+// NewNotificationRequestsService constructs a NotificationRequestsService
 func NewNotificationRequestsService(r domain.NotificationRepository, kw domain.KafkaWriter, batchSize int) *NotificationRequestsService {
 	return &NotificationRequestsService{
 		repository:  r,
@@ -22,6 +26,8 @@ func NewNotificationRequestsService(r domain.NotificationRepository, kw domain.K
 	}
 }
 
+// SaveNotifications persists a slice of notifications to the database and then
+// publishes SendNotificationTask messages to Kafka in batches.
 func (nrs *NotificationRequestsService) SaveNotifications(ctx context.Context, ntfs *[]*models.Notification) error {
 	err := nrs.repository.CreateMultipleNotifications(ctx, *ntfs)
 	if err != nil {

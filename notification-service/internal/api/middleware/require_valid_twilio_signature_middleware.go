@@ -1,14 +1,18 @@
 package middleware
 
 import (
-	"github.com/twilio/twilio-go/client"
 	"net/http"
+
+	"github.com/twilio/twilio-go/client"
 )
 
-func RequireValidTwilioSignatureMiddleware(baseUrl string, validator *client.RequestValidator) func(handler http.Handler) http.Handler {
+// RequireValidTwilioSignatureMiddleware returns a middleware that validates incoming Twilio
+// webhook requests by verifying the X-Twilio-Signature header against the request URL and parameters.
+// This ensures that only genuine requests from Twilio are processed.
+func RequireValidTwilioSignatureMiddleware(baseURL string, validator *client.RequestValidator) func(handler http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			url := baseUrl + r.URL.Path
+			url := baseURL + r.URL.Path
 			signatureHeader := r.Header.Get("X-Twilio-Signature")
 			params := make(map[string]string)
 

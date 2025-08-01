@@ -1,12 +1,13 @@
 package bootstrap
 
 import (
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // Config holds all application and database configuration.
@@ -40,6 +41,7 @@ type KafkaConfig struct {
 	Topics     map[string]string
 }
 
+// NewConfig loads configuration from environment variables with defaults.
 func NewConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {

@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/adapter/consumers"
-	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/bootstrap"
-	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/repository"
-	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/service"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/adapter/consumers"
+	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/bootstrap"
+	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/repository"
+	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/service"
 )
 
 func main() {

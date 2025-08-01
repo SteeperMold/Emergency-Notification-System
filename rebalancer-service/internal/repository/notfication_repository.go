@@ -2,20 +2,28 @@ package repository
 
 import (
 	"context"
+
 	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/models"
 )
 
+// NotificationRepository provides methods to fetch and update pending notifications
+// from the database in a safe, concurrent manner.
 type NotificationRepository struct {
 	db domain.DBConn
 }
 
+// NewNotificationRepository creates a new NotificationRepository.
 func NewNotificationRepository(db domain.DBConn) *NotificationRepository {
 	return &NotificationRepository{
 		db: db,
 	}
 }
 
+// FetchAndUpdatePending atomically retrieves up to `limit` pending or stale in-flight
+// notifications, marks them as in-flight with an incremented attempt count, and returns
+// them as a slice. Uses SELECT ... FOR UPDATE SKIP LOCKED to avoid contention across
+// multiple rebalancer instances.
 func (nr *NotificationRepository) FetchAndUpdatePending(ctx context.Context, limit int) ([]*models.Notification, error) {
 	const q = `
 		WITH to_dequeue AS (

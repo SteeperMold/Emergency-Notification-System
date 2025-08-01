@@ -1,8 +1,9 @@
 package bootstrap
 
 import (
-	"go.uber.org/zap"
 	"log"
+
+	"go.uber.org/zap"
 )
 
 // NewLogger creates a new zap.Logger instance based on the given application environment.

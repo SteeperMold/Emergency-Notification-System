@@ -1,12 +1,13 @@
 package bootstrap
 
 import (
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // Config holds all application and database configuration.
@@ -41,6 +42,7 @@ type KafkaConfig struct {
 	ConsumerGroup string
 }
 
+// TwilioConfig holds Twilio SMS API credentials and status callback settings.
 type TwilioConfig struct {
 	AccountSID             string
 	AuthToken              string

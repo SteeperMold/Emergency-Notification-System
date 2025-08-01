@@ -3,14 +3,18 @@ package consumers
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/models"
 	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
-	"time"
 )
 
+// NotificationRequestsConsumer reads notification requests from Kafka,
+// buffers them into in-memory batches by configured size or interval,
+// and persists them via the NotificationRequestsService.
 type NotificationRequestsConsumer struct {
 	service        domain.NotificationRequestsService
 	kafkaReader    domain.KafkaReader
@@ -20,6 +24,7 @@ type NotificationRequestsConsumer struct {
 	flushInterval  time.Duration
 }
 
+// NewNotificationRequestsConsumer constructs the consumer with required dependencies and settings.
 func NewNotificationRequestsConsumer(s domain.NotificationRequestsService, kr domain.KafkaReader, logger *zap.Logger, timeout time.Duration, batchSize int, flushInterval time.Duration) *NotificationRequestsConsumer {
 	return &NotificationRequestsConsumer{
 		service:        s,
@@ -36,25 +41,12 @@ type message struct {
 	err error
 }
 
+// StartConsumer begins polling Kafka for NotificationRequest messages.
+// It runs until the provided context is cancelled, automatically flushing
+// any buffered notifications on shutdown or when batchSize or flushInterval triggers.
 func (nrc *NotificationRequestsConsumer) StartConsumer(ctx context.Context) error {
-	msgCh := make(chan message)
-
-	go func() {
-		for {
-			msg, err := nrc.kafkaReader.FetchMessage(ctx)
-			select {
-			case msgCh <- message{msg, err}:
-			case <-ctx.Done():
-				return
-			}
-			if err != nil {
-				return
-			}
-		}
-	}()
-
+	msgCh := nrc.startFetchLoop(ctx)
 	buffered := make([]*models.Notification, 0, nrc.batchSize)
-
 	ticker := time.NewTicker(nrc.flushInterval)
 	defer ticker.Stop()
 
@@ -117,6 +109,24 @@ func (nrc *NotificationRequestsConsumer) StartConsumer(ctx context.Context) erro
 			}
 		}
 	}
+}
+
+func (nrc *NotificationRequestsConsumer) startFetchLoop(ctx context.Context) chan message {
+	ch := make(chan message)
+	go func() {
+		for {
+			msg, err := nrc.kafkaReader.FetchMessage(ctx)
+			select {
+			case ch <- message{msg, err}:
+			case <-ctx.Done():
+				return
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return ch
 }
 
 func (nrc *NotificationRequestsConsumer) flush(ctx context.Context, ntfs *[]*models.Notification) error {

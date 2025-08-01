@@ -16,14 +16,19 @@ type DevSendError struct {
 	retryable bool
 }
 
+// Error returns the error message for DevSendError.
 func (e DevSendError) Error() string {
 	return e.Message
 }
 
+// Retryable indicates whether the DevSendError is considered retryable.
 func (e DevSendError) Retryable() bool {
 	return e.retryable
 }
 
+// DevSmsSender is a mock SMS sender used for development environments.
+// It simulates SMS delivery by writing message content to a file,
+// and optionally simulates delivery callbacks and failures.
 type DevSmsSender struct {
 	Dir              string
 	CallbackBaseURL  string
@@ -33,6 +38,7 @@ type DevSmsSender struct {
 	rng              *rand.Rand
 }
 
+// NewDevSmsSender creates a new DevSmsSender.
 func NewDevSmsSender(dir, callbackBaseURL string, failRate, cbFailRate float64, cbDelay time.Duration) (*DevSmsSender, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
@@ -47,6 +53,9 @@ func NewDevSmsSender(dir, callbackBaseURL string, failRate, cbFailRate float64, 
 	}, nil
 }
 
+// SendSMS simulates sending an SMS message.
+// If the callback does not fail, the message content is written to a file in the configured directory.
+// Regardless of success, a simulated status callback is posted to the configured callback URL.
 func (d *DevSmsSender) SendSMS(to, body, notificationID string) error {
 	if d.rng.Float64() < d.FailRate {
 		return DevSendError{

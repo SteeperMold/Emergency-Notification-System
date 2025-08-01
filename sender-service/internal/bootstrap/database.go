@@ -3,8 +3,9 @@ package bootstrap
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // NewSQLDatabase creates and returns a new pgxpool.Pool connection pool

@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/domain"
 	"go.uber.org/zap"
-	"time"
 )
 
+// NotificationTasksConsumer is responsible for consuming notification tasks from a Kafka topic,
+// sending them using the NotificationTasksService, and committing messages based on success or failure.
 type NotificationTasksConsumer struct {
 	service        domain.NotificationTasksService
 	kafkaReader    domain.KafkaReader
@@ -16,6 +19,7 @@ type NotificationTasksConsumer struct {
 	contextTimeout time.Duration
 }
 
+// NewNotificationTasksConsumer creates a new instance of NotificationTasksConsumer.
 func NewNotificationTasksConsumer(s domain.NotificationTasksService, kr domain.KafkaReader, logger *zap.Logger, timeout time.Duration) *NotificationTasksConsumer {
 	return &NotificationTasksConsumer{
 		service:        s,
@@ -25,6 +29,9 @@ func NewNotificationTasksConsumer(s domain.NotificationTasksService, kr domain.K
 	}
 }
 
+// StartConsumer continuously reads messages from the Kafka topic, decodes them into NotificationTasks,
+// processes them using the NotificationTasksService, and commits messages to Kafka accordingly.
+// Retryable errors are skipped to allow future retries; permanent failures are logged and committed.
 func (ntc *NotificationTasksConsumer) StartConsumer(ctx context.Context) error {
 	for {
 		msg, err := ntc.kafkaReader.FetchMessage(ctx)

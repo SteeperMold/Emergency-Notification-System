@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-func (cs *ContactsService) createCsvRowProvider(file io.Reader) (RowProvider, error) {
+func (cs *ContactsService) createCsvRowProvider(file io.Reader) (rowProvider, error) {
 	reader := csv.NewReader(file)
 	reader.FieldsPerRecord = -1
 

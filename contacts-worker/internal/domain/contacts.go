@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/models"
 )
 
@@ -12,6 +13,9 @@ type ContactsService interface {
 	ProcessFile(ctx context.Context, task *Task) (processedContacts int, err error)
 }
 
+// ContactsRepository encapsulates the persistence mechanism for storing Contact models.
+// Implementations should insert the provided slice of Contact objects into the database,
+// handling deduplication or conflict resolution as needed.
 type ContactsRepository interface {
 	SaveContacts(ctx context.Context, contacts []*models.Contact) error
 }

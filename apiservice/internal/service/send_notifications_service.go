@@ -3,11 +3,14 @@ package service
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/segmentio/kafka-go"
 )
 
+// SendNotificationService orchestrates reading a template and contacts,
+// splitting them into chunks, and emitting one Kafka message per chunk.
 type SendNotificationService struct {
 	contactsRepository domain.ContactsRepository
 	templateRepository domain.TemplateRepository
@@ -15,6 +18,7 @@ type SendNotificationService struct {
 	contactsPerMessage int
 }
 
+// NewSendNotificationService constructs a SendNotificationService.
 func NewSendNotificationService(cr domain.ContactsRepository, tr domain.TemplateRepository, kw domain.KafkaWriter, cpm int) *SendNotificationService {
 	return &SendNotificationService{
 		contactsRepository: cr,
@@ -24,13 +28,16 @@ func NewSendNotificationService(cr domain.ContactsRepository, tr domain.Template
 	}
 }
 
-func (sns *SendNotificationService) SendNotification(ctx context.Context, userId int, templateID int) error {
-	tmpl, err := sns.templateRepository.GetTemplateByID(ctx, userId, templateID)
+// SendNotification loads the template and contacts for userId/templateID,
+// splits contacts into batches of size contactsPerMessage, and writes one
+// Kafka message per batch. Returns an error if any repository or Kafka call fails.
+func (sns *SendNotificationService) SendNotification(ctx context.Context, userID int, templateID int) error {
+	tmpl, err := sns.templateRepository.GetTemplateByID(ctx, userID, templateID)
 	if err != nil {
 		return err
 	}
 
-	contacts, err := sns.contactsRepository.GetContactsByUserID(ctx, userId)
+	contacts, err := sns.contactsRepository.GetContactsByUserID(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -48,7 +55,7 @@ func (sns *SendNotificationService) SendNotification(ctx context.Context, userId
 		chunk := slimContacts[start:end]
 
 		notification := &domain.OutgoingNotification{
-			UserID:   userId,
+			UserID:   userID,
 			Template: tmpl.Body,
 			Contacts: chunk,
 		}

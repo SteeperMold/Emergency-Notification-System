@@ -3,11 +3,12 @@ package service
 import (
 	"errors"
 	"fmt"
-	"github.com/xuri/excelize/v2"
 	"io"
+
+	"github.com/xuri/excelize/v2"
 )
 
-func (cs *ContactsService) createExcelRowProvider(file io.Reader) (RowProvider, error) {
+func (cs *ContactsService) createExcelRowProvider(file io.Reader) (rowProvider, error) {
 	f, rowsIter, err := cs.getRowsFromExcel(file)
 	if err != nil {
 		return nil, err

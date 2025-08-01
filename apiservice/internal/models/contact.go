@@ -12,11 +12,15 @@ type Contact struct {
 	UpdateTime   time.Time `json:"updateTime"`
 }
 
+// SlimContact contains only the minimal fields (Name and Phone)
+// needed when sending contact data to other services or clients.
 type SlimContact struct {
 	Name  string `json:"name"`
 	Phone string `json:"phone"`
 }
 
+// ToSlim transforms a slice of full Contact pointers into a slice
+// of SlimContact pointers, dropping all metadata and IDs.
 func ToSlim(contacts []*Contact) []*SlimContact {
 	slim := make([]*SlimContact, len(contacts))
 	for i, c := range contacts {

@@ -59,7 +59,7 @@ func (cs *ContactsService) ProcessFile(ctx context.Context, task *domain.Task) (
 		return 0, err
 	}
 
-	var rowProvider RowProvider
+	var rowProvider rowProvider
 	switch http.DetectContentType(header) {
 	case "text/plain; charset=utf-8", "text/csv":
 		rowProvider, err = cs.createCsvRowProvider(br)
