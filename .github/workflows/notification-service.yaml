@@ -1,17 +1,17 @@
-name: "contacts worker audit"
+name: "notification service audit"
 
 on:
   push:
     branches: [ main ]
     paths:
-      - "contacts-worker/**"
-      - ".github/workflows/contacts-worker.yaml"
+      - "notification-service/**"
+      - ".github/workflows/notification-service.yaml"
 
   pull_request:
     branches: [ main ]
     paths:
-      - "contacts-worker/**"
-      - ".github/workflows/contacts-worker.yaml"
+      - "notification-service/**"
+      - ".github/workflows/notification-service.yaml"
 
 jobs:
   lint:
@@ -29,7 +29,7 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1
-          working-directory: apiservice
+          working-directory: notification-service
 
   test:
     runs-on: ubuntu-latest
@@ -40,7 +40,5 @@ jobs:
 
       - name: run tests
         run: |
-          cd contacts-worker
+          cd notification-service
           go test ./... -v -race -cover
-        env:
-          DOCKER_BUILDKIT: 1
