@@ -38,7 +38,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: run tests with docker compose
+      - name: run tests
         run: |
           cd contacts-worker
           go test ./... -v -race -cover

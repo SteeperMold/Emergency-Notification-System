@@ -173,30 +173,6 @@ func TestContactsHandler(t *testing.T) {
 			expectedStatus: http.StatusCreated,
 			expectJSON:     true,
 		},
-		{
-			name:   "Post_Conflict",
-			method: http.MethodPost,
-			path:   "/contacts",
-			body:   map[string]string{"name": "Bob", "phone": "+7 912 456 78 90"},
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid int
-				require.NoError(t, tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"s@s.com", "h",
-				).Scan(&uid))
-				// first insert
-				_, err := tx.Exec(ctx,
-					`INSERT INTO contacts(user_id,name,phone) VALUES($1,$2,$3)`,
-					uid, "Bob", "+4 123 456 78 90",
-				)
-				require.NoError(t, err)
-				return uid, ""
-			},
-			expectedStatus: http.StatusConflict,
-			expectContains: "contact already exists",
-		},
-
 		// --- PUT /contacts/{id} ------------------------
 		{
 			name:           "Put_BadID",

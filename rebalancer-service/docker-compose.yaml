@@ -1,0 +1,19 @@
+services:
+  rebalancer-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      mode: replicated
+      replicas: 2
+    env_file:
+      - .env
+    depends_on:
+      kafka:
+        condition: service_started
+      init-kafka:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      init-minio:
+        condition: service_completed_successfully

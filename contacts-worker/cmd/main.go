@@ -9,20 +9,20 @@ import (
 
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/adapter/consumers"
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/bootstrap"
+	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/repository"
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/service"
 )
 
 func main() {
 	app := bootstrap.NewApp()
+	defer app.CloseDBConnection()
 	defer app.LoggerSync()
 
 	kafkaCfg := app.Config.Kafka
 	contactsReader := app.KafkaFactory.NewReader(kafkaCfg.Topics["contacts.loading.tasks"], kafkaCfg.ConsumerGroup)
-	contactsWriter := app.KafkaFactory.NewWriter(kafkaCfg.Topics["contacts.loading.results"])
 
-	s3Cfg := app.Config.S3
-
-	cs := service.NewContactsService(contactsWriter, app.S3Client, s3Cfg.Bucket, app.Config.App.ContextTimeout)
+	cr := repository.NewContactsRepository(app.DB)
+	cs := service.NewContactsService(cr, app.S3Client, app.Config.S3.Bucket, app.Config.App.ContextTimeout, app.Config.App.BatchSize)
 	cc := consumers.NewContactsConsumer(cs, contactsReader, app.Logger)
 
 	ctx, cancel := context.WithCancel(context.Background())

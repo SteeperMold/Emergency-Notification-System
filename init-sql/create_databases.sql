@@ -1,0 +1,2 @@
+CREATE DATABASE api_service_db;
+CREATE DATABASE notification_service_db;

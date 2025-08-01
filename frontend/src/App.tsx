@@ -5,6 +5,7 @@ import LoginPage from "src/features/login-page/LoginPage";
 import LogoutPage from "src/features/logout-page/LogoutPage";
 import MainPage from "src/features/main-page/MainPage";
 import Navbar from "src/features/navbar/Navbar";
+import SendConfirmPage from "src/features/send-page/SendConfirmPage";
 import SendPage from "src/features/send-page/SendPage";
 import SignupPage from "src/features/signup-page/SignupPage";
 import TemplatePage from "src/features/template-page/TemplatePage";
@@ -23,6 +24,7 @@ const App = () => {
       <Route path="/contacts" element={<ContactsPage/>}/>
       <Route path="/load-contacts" element={<LoadContactsPage/>}/>
       <Route path="/send" element={<SendPage/>}/>
+      <Route path="/send/:id" element={<SendConfirmPage/>}/>
     </Routes>
   </>;
 };

@@ -20,11 +20,12 @@ type Config struct {
 
 // AppConfig holds general application settings.
 type AppConfig struct {
-	AppEnv         string
-	Port           string
-	ContextTimeout time.Duration
-	FrontendOrigin string
-	Jwt            *JWTConfig
+	AppEnv                  string
+	Port                    string
+	ContextTimeout          time.Duration
+	FrontendOrigin          string
+	Jwt                     *JWTConfig
+	ContactsPerKafkaMessage int
 }
 
 // JWTConfig holds JWT secret keys and expiry durations for access and refresh tokens.
@@ -56,9 +57,9 @@ type S3Config struct {
 
 // KafkaConfig defines Kafka broker addresses and topic names.
 type KafkaConfig struct {
-	KafkaAddrs     []string
-	Topics         map[string]string
-	ConsumerGroups map[string]string
+	KafkaAddrs                       []string
+	Topics                           map[string]string
+	NotificationRequestsBatchTimeout time.Duration
 }
 
 // NewConfig loads configuration from environment variables with defaults.
@@ -80,14 +81,15 @@ func NewConfig() *Config {
 				RefreshSecret: getEnv("JWT_REFRESH_SECRET", "very_secret2"),
 				RefreshExpiry: getEnvAsDuration("JWT_REFRESH_EXPIRY_H", 720) * time.Hour,
 			},
+			ContactsPerKafkaMessage: getEnvAsInt("CONTACTS_PER_KAFKA_MESSAGE", 10_000),
 		},
 		DB: &DBConfig{
-			Host:              getEnv("DB_HOST", "postgres"),
+			Host:              getEnv("DB_HOST", "apiservice"),
 			Port:              getEnv("DB_PORT", "5432"),
-			Name:              getEnv("DB_NAME", "devdb"),
+			Name:              getEnv("DB_NAME", "api_service_postgres"),
 			User:              getEnv("DB_USER", "user"),
 			Password:          getEnv("DB_PASSWORD", "123456789admin"),
-			ConnectionTimeout: getEnvAsDuration("DB_CONNECTION_TIMEOUT_MS", 10000) * time.Millisecond,
+			ConnectionTimeout: getEnvAsDuration("DB_CONNECTION_TIMEOUT_MS", 10_000) * time.Millisecond,
 		},
 		S3: &S3Config{
 			ID:       getEnv("S3_SECRET_ID", "miniouser"),
@@ -99,14 +101,12 @@ func NewConfig() *Config {
 			},
 		},
 		Kafka: &KafkaConfig{
-			KafkaAddrs: getEnvAsSlice("KAFKA_ADDRS", []string{"consumers:9092"}, ","),
+			KafkaAddrs: getEnvAsSlice("KAFKA_ADDRS", []string{"kafka:9092"}, ","),
 			Topics: map[string]string{
-				"contacts.loading.tasks":   getEnv("KAFKA_TOPIC_CONTACTS_LOADING_TASKS", "contacts.loading.tasks"),
-				"contacts.loading.results": getEnv("KAFKA_TOPIC_CONTACTS_LOADING_RESULTS", "contacts.loading.results"),
+				"contacts.loading.tasks": getEnv("KAFKA_TOPIC_CONTACTS_LOADING_TASKS", "contacts.loading.tasks"),
+				"notification.requests":  getEnv("KAFKA_TOPIC_NOTIFICATION_REQUESTS", "notification.requests"),
 			},
-			ConsumerGroups: map[string]string{
-				"contacts.loading.results": getEnv("KAFKA_CONSUMER_GROUP_CONTACTS_LOADING_RESULTS", "contacts.loading.results-group"),
-			},
+			NotificationRequestsBatchTimeout: getEnvAsDuration("KAFKA_NOTIFICATION_REQUESTS_BATCH_TIMEOUT_MS", 1) * time.Millisecond,
 		},
 	}
 }
