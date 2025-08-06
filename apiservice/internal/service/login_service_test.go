@@ -2,7 +2,6 @@ package service_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
@@ -14,51 +13,19 @@ import (
 )
 
 func TestLoginService_GetUserByEmail(t *testing.T) {
-	tests := []struct {
-		name     string
-		email    string
-		mockUser *models.User
-		mockErr  error
-		wantErr  error
-	}{
-		{
-			name:     "user found",
-			email:    "a@example.com",
-			mockUser: &models.User{ID: 1, Email: "a@example.com"},
-			mockErr:  nil,
-			wantErr:  nil,
-		},
-		{
-			name:     "user not found",
-			email:    "unknown@example.com",
-			mockUser: nil,
-			mockErr:  errors.New("not found"),
-			wantErr:  errors.New("not found"),
-		},
-	}
+	user := &models.User{ID: 123, Email: "test@test.com"}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRepo := new(MockRepository)
-			svc := service.NewLoginService(mockRepo)
+	m := new(MockUserRepository)
+	m.
+		On("GetUserByEmail", mock.Anything, "test@test.com").
+		Return(user, nil).
+		Once()
+	svc := service.NewLoginService(m)
 
-			mockRepo.On("GetUserByEmail", mock.Anything, tc.email).
-				Return(tc.mockUser, tc.mockErr).
-				Once()
-
-			user, err := svc.GetUserByEmail(context.Background(), tc.email)
-
-			if tc.wantErr != nil {
-				assert.Error(t, err)
-				assert.Nil(t, user)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.mockUser, user)
-			}
-
-			mockRepo.AssertExpectations(t)
-		})
-	}
+	res, err := svc.GetUserByEmail(context.Background(), "test@test.com")
+	assert.NoError(t, err)
+	assert.Equal(t, user, res)
+	m.AssertExpectations(t)
 }
 
 func TestLoginService_CompareCredentials(t *testing.T) {

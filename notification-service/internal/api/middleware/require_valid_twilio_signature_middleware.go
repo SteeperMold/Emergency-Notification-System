@@ -3,13 +3,13 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/twilio/twilio-go/client"
+	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/domain"
 )
 
 // RequireValidTwilioSignatureMiddleware returns a middleware that validates incoming Twilio
 // webhook requests by verifying the X-Twilio-Signature header against the request URL and parameters.
 // This ensures that only genuine requests from Twilio are processed.
-func RequireValidTwilioSignatureMiddleware(baseURL string, validator *client.RequestValidator) func(handler http.Handler) http.Handler {
+func RequireValidTwilioSignatureMiddleware(baseURL string, validator domain.TwilioRequestValidator) func(handler http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			url := baseURL + r.URL.Path

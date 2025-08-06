@@ -1,162 +1,169 @@
-// consumers_test.go
 package consumers_test
 
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"testing"
-	"time"
 
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/adapter/consumers"
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/domain"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 )
 
-type MockService struct{ mock.Mock }
-
-func (m *MockService) ProcessFile(ctx context.Context, task *domain.Task) (int, error) {
-	args := m.Called(ctx, task)
-	return args.Int(0), args.Error(1)
+type MockKafkaReader struct {
+	mock.Mock
 }
 
-type MockReader struct{ mock.Mock }
-
-func (m *MockReader) FetchMessage(ctx context.Context) (kafka.Message, error) {
+func (m *MockKafkaReader) FetchMessage(ctx context.Context) (kafka.Message, error) {
 	args := m.Called(ctx)
 	return args.Get(0).(kafka.Message), args.Error(1)
 }
 
-func (m *MockReader) CommitMessages(ctx context.Context, msgs ...kafka.Message) error {
-	args := m.Called(ctx, msgs)
-	return args.Error(0)
+func (m *MockKafkaReader) CommitMessages(ctx context.Context, msg ...kafka.Message) error {
+	return m.Called(ctx, msg).Error(0)
 }
 
-func TestStartConsumer(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+type MockContactsService struct {
+	mock.Mock
+}
 
-	validTask := domain.Task{UserID: 1, S3Key: "key"}
-	validBytes, _ := json.Marshal(validTask)
-	invalidBytes := []byte("{bad json}")
-	msgValid := kafka.Message{Value: validBytes}
-	msgInvalid := kafka.Message{Value: invalidBytes}
+func (m *MockContactsService) ProcessFile(ctx context.Context, t *domain.Task) (int, error) {
+	args := m.Called(ctx, t)
+	return args.Int(0), args.Error(1)
+}
 
-	cases := []struct {
-		name          string
-		sequenceFetch []struct {
-			msg kafka.Message
-			err error
-		}
-		processResult []struct {
-			count int
-			err   error
-		}
-		commitErr      error
-		wantErr        bool
-		wantProcessLen int
+func TestContactsConsumer_StartConsumer(t *testing.T) {
+	validTask := domain.Task{
+		UserID: 42,
+		S3Key:  "contacts.csv",
+	}
+	validJSON, _ := json.Marshal(validTask)
+	validMsg := kafka.Message{Value: validJSON}
+	invalidMsg := kafka.Message{Value: []byte("invalid-json")}
+
+	tests := []struct {
+		name                 string
+		setupMocks           func(*MockKafkaReader, *MockContactsService)
+		expectError          error
+		cancelContextAfterMs int
 	}{
 		{
-			name: "success then fetch error",
-			sequenceFetch: []struct {
-				msg kafka.Message
-				err error
-			}{
-				{msgValid, nil},
-				{kafka.Message{}, errors.New("done")},
+			name: "successful processing",
+			setupMocks: func(mr *MockKafkaReader, ms *MockContactsService) {
+				mr.
+					On("FetchMessage", mock.Anything).
+					Return(validMsg, nil).
+					Once()
+				mr.
+					On("CommitMessages", mock.Anything, mock.Anything).
+					Return(nil).
+					Once()
+				ms.
+					On("ProcessFile", mock.Anything, &validTask).
+					Return(5, nil).
+					Once()
+				mr.
+					On("FetchMessage", mock.Anything).
+					Return(kafka.Message{}, context.Canceled).
+					Once()
 			},
-			processResult: []struct {
-				count int
-				err   error
-			}{{2, nil}},
-			commitErr:      nil,
-			wantErr:        true,
-			wantProcessLen: 1,
+			expectError: context.Canceled,
 		},
 		{
-			name: "invalid JSON then valid",
-			sequenceFetch: []struct {
-				msg kafka.Message
-				err error
-			}{
-				{msgInvalid, nil},
-				{msgValid, nil},
-				{kafka.Message{}, errors.New("stop")},
+			name: "invalid json task",
+			setupMocks: func(mr *MockKafkaReader, ms *MockContactsService) {
+				mr.
+					On("FetchMessage", mock.Anything).
+					Return(invalidMsg, nil).
+					Once()
+				mr.
+					On("CommitMessages", mock.Anything, mock.Anything).
+					Return(nil).
+					Once()
+				mr.
+					On("FetchMessage", mock.Anything).
+					Return(validMsg, context.Canceled).
+					Once()
 			},
-			processResult: []struct {
-				count int
-				err   error
-			}{{3, nil}},
-			commitErr:      nil,
-			wantErr:        true,
-			wantProcessLen: 1,
+			expectError: context.Canceled,
 		},
 		{
-			name: "process error but commit OK",
-			sequenceFetch: []struct {
-				msg kafka.Message
-				err error
-			}{
-				{msgValid, nil},
-				{kafka.Message{}, errors.New("stop")},
+			name: "process file error",
+			setupMocks: func(mr *MockKafkaReader, ms *MockContactsService) {
+				mr.
+					On("FetchMessage", mock.Anything).
+					Return(validMsg, nil).
+					Once()
+				ms.
+					On("ProcessFile", mock.Anything, &validTask).
+					Return(0, assert.AnError).
+					Once()
+				mr.
+					On("CommitMessages", mock.Anything, mock.Anything).
+					Return(nil).
+					Once()
+				mr.
+					On("FetchMessage", mock.Anything).
+					Return(validMsg, context.Canceled).
+					Once()
 			},
-			processResult: []struct {
-				count int
-				err   error
-			}{{0, errors.New("fail")}},
-			commitErr:      nil,
-			wantErr:        true,
-			wantProcessLen: 1,
+			expectError: context.Canceled,
 		},
 		{
 			name: "commit error",
-			sequenceFetch: []struct {
-				msg kafka.Message
-				err error
-			}{
-				{msgValid, nil},
+			setupMocks: func(mr *MockKafkaReader, ms *MockContactsService) {
+				mr.
+					On("FetchMessage", mock.Anything).
+					Return(validMsg, nil).
+					Once()
+				ms.
+					On("ProcessFile", mock.Anything, &validTask).
+					Return(5, nil).
+					Once()
+				mr.
+					On("CommitMessages", mock.Anything, mock.Anything).
+					Return(assert.AnError).
+					Once()
 			},
-			processResult: []struct {
-				count int
-				err   error
-			}{{1, nil}},
-			commitErr:      errors.New("commit fail"),
-			wantErr:        true,
-			wantProcessLen: 1,
+			expectError: assert.AnError,
+		},
+		{
+			name: "fetch message error",
+			setupMocks: func(mr *MockKafkaReader, ms *MockContactsService) {
+				mr.
+					On("FetchMessage", mock.Anything).
+					Return(kafka.Message{}, assert.AnError).
+					Once()
+			},
+			expectError: assert.AnError,
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			svc := new(MockService)
-			rd := new(MockReader)
-			logger := zap.NewNop()
-			cc := consumers.NewContactsConsumer(svc, rd, logger)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kafkaReader := &MockKafkaReader{}
+			service := &MockContactsService{}
+			logger := zaptest.NewLogger(t)
 
-			for _, sf := range tc.sequenceFetch {
-				rd.On("FetchMessage", mock.Anything).
-					Return(sf.msg, sf.err).Once()
-				if sf.err == nil {
-					rd.On("CommitMessages", mock.Anything, []kafka.Message{sf.msg}).
-						Return(tc.commitErr).Once()
-					if sf.msg.Value != nil {
-						svc.
-							On("ProcessFile", mock.Anything, mock.Anything).
-							Return(tc.processResult[0].count, tc.processResult[0].err).
-							Once()
-					}
-				}
-			}
+			tt.setupMocks(kafkaReader, service)
+			consumer := consumers.NewContactsConsumer(service, kafkaReader, logger)
 
-			err := cc.StartConsumer(ctx)
-			if tc.wantErr {
-				assert.Error(t, err)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			err := consumer.StartConsumer(ctx)
+
+			if tt.expectError != nil {
+				assert.ErrorIs(t, err, tt.expectError)
 			} else {
 				assert.NoError(t, err)
 			}
+
+			kafkaReader.AssertExpectations(t)
+			service.AssertExpectations(t)
 		})
 	}
 }

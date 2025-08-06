@@ -2,255 +2,265 @@ package service_test
 
 import (
 	"context"
-	"errors"
+	"strings"
 	"testing"
 
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/phoneutils"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// MockContactsRepo is a testify/mock implementation of domain.ContactsRepository.
-type MockContactsRepo struct {
-	mock.Mock
-}
-
-func (m *MockContactsRepo) GetContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error) {
-	args := m.Called(ctx, userID)
-	if cs := args.Get(0); cs != nil {
-		return cs.([]*models.Contact), args.Error(1)
+func TestContactsService_GetContactsByUserID(t *testing.T) {
+	contacts := []*models.Contact{
+		{ID: 1, UserID: 123, Name: "Alice", Phone: "+79123456789"},
+		{ID: 2, UserID: 123, Name: "Bob", Phone: "+79129876543"},
 	}
-	return nil, args.Error(1)
+
+	m := new(MockContactsRepository)
+	m.
+		On("GetContactsByUserID", mock.Anything, 123).
+		Return(contacts, nil).
+		Once()
+	svc := service.NewContactsService(m)
+
+	res, err := svc.GetContactsByUserID(context.Background(), 123)
+	assert.NoError(t, err)
+	assert.Equal(t, contacts, res)
+	m.AssertExpectations(t)
 }
 
-func (m *MockContactsRepo) GetContactByID(ctx context.Context, userID, contactID int) (*models.Contact, error) {
-	args := m.Called(ctx, userID, contactID)
-	if c := args.Get(0); c != nil {
-		return c.(*models.Contact), args.Error(1)
+func TestContactsService_GetContactByID(t *testing.T) {
+	contact := &models.Contact{ID: 456, UserID: 123, Name: "Alice", Phone: "+79123456789"}
+
+	m := new(MockContactsRepository)
+	m.
+		On("GetContactByID", mock.Anything, 123, 456).
+		Return(contact, nil).
+		Once()
+	svc := service.NewContactsService(m)
+
+	res, err := svc.GetContactByID(context.Background(), 123, 456)
+	assert.NoError(t, err)
+	assert.Equal(t, contact, res)
+	m.AssertExpectations(t)
+}
+
+func TestContactsService_CreateContact(t *testing.T) {
+	type args struct {
+		ctx     context.Context
+		contact *models.Contact
 	}
-	return nil, args.Error(1)
-}
-
-func (m *MockContactsRepo) CreateContact(ctx context.Context, contact *models.Contact) (*models.Contact, error) {
-	args := m.Called(ctx, contact)
-	if c := args.Get(0); c != nil {
-		return c.(*models.Contact), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockContactsRepo) UpdateContact(ctx context.Context, userID, contactID int, contact *models.Contact) (*models.Contact, error) {
-	args := m.Called(ctx, userID, contactID, contact)
-	if c := args.Get(0); c != nil {
-		return c.(*models.Contact), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockContactsRepo) DeleteContact(ctx context.Context, userID, contactID int) error {
-	return m.Called(ctx, userID, contactID).Error(0)
-}
-
-func TestContactsService(t *testing.T) {
-	// a sample valid E.164 number
-	validRaw := "8 (912) 345-6789"
-	validE164, _ := phoneutils.FormatToE164(validRaw, phoneutils.RegionRU)
-
-	errDB := errors.New("db failure")
-
 	tests := []struct {
 		name       string
-		method     string
-		args       []interface{}
-		mockSetup  func(*MockContactsRepo)
-		wantResult interface{}
+		mockSetup  func(*MockContactsRepository)
+		args       args
+		wantResult *models.Contact
 		wantErr    error
 	}{
 		{
-			name:   "GetContactsByUserID success",
-			method: "GetContactsByUserID",
-			args:   []interface{}{context.Background(), 42},
-			mockSetup: func(m *MockContactsRepo) {
-				contacts := []*models.Contact{
-					{ID: 1, UserID: 42, Name: "A", Phone: "+79123456789"},
-				}
-				m.On("GetContactsByUserID", mock.Anything, 42).
-					Return(contacts, nil).Once()
+			name: "success",
+			mockSetup: func(m *MockContactsRepository) {
+				m.
+					On("CreateContact", mock.Anything, &models.Contact{UserID: 123, Name: "Alice", Phone: "+79123456789"}).
+					Return(&models.Contact{ID: 1, UserID: 123, Name: "Alice", Phone: "+79123456789"}, nil).
+					Once()
 			},
-			wantResult: []*models.Contact{{ID: 1, UserID: 42, Name: "A", Phone: "+79123456789"}},
+			args: args{
+				context.Background(),
+				&models.Contact{UserID: 123, Name: "Alice", Phone: "+79123456789"},
+			},
+			wantResult: &models.Contact{ID: 1, UserID: 123, Name: "Alice", Phone: "+79123456789"},
 			wantErr:    nil,
 		},
 		{
-			name:   "GetContactsByUserID error",
-			method: "GetContactsByUserID",
-			args:   []interface{}{context.Background(), 42},
-			mockSetup: func(m *MockContactsRepo) {
-				m.On("GetContactsByUserID", mock.Anything, 42).
-					Return(nil, errDB).Once()
+			name:      "name too short",
+			mockSetup: func(m *MockContactsRepository) {},
+			args: args{
+				context.Background(),
+				&models.Contact{ID: 1, UserID: 123, Name: "", Phone: "+79123456789"},
 			},
-			wantResult: nil,
-			wantErr:    errDB,
-		},
-		{
-			name:   "GetContactByID success",
-			method: "GetContactByID",
-			args:   []interface{}{context.Background(), 42, 7},
-			mockSetup: func(m *MockContactsRepo) {
-				contact := &models.Contact{ID: 7, UserID: 42, Name: "Bob", Phone: "+71234567890"}
-				m.On("GetContactByID", mock.Anything, 42, 7).
-					Return(contact, nil).Once()
-			},
-			wantResult: &models.Contact{ID: 7, UserID: 42, Name: "Bob", Phone: "+71234567890"},
-			wantErr:    nil,
-		},
-		{
-			name:   "GetContactByID error",
-			method: "GetContactByID",
-			args:   []interface{}{context.Background(), 42, 7},
-			mockSetup: func(m *MockContactsRepo) {
-				m.On("GetContactByID", mock.Anything, 42, 7).
-					Return(nil, errDB).Once()
-			},
-			wantResult: nil,
-			wantErr:    errDB,
-		},
-		{
-			name:       "CreateContact invalid name",
-			method:     "CreateContact",
-			args:       []interface{}{context.Background(), &models.Contact{UserID: 1, Name: "", Phone: validRaw}},
-			mockSetup:  func(m *MockContactsRepo) {},
 			wantResult: nil,
 			wantErr:    domain.ErrInvalidContactName,
 		},
 		{
-			name:       "CreateContact invalid phone",
-			method:     "CreateContact",
-			args:       []interface{}{context.Background(), &models.Contact{UserID: 1, Name: "Alice", Phone: "bad"}},
-			mockSetup:  func(m *MockContactsRepo) {},
-			wantResult: nil,
-			wantErr:    domain.ErrInvalidContactPhone,
-		},
-		{
-			name:   "CreateContact success",
-			method: "CreateContact",
-			args:   []interface{}{context.Background(), &models.Contact{UserID: 1, Name: "Alice", Phone: validRaw}},
-			mockSetup: func(m *MockContactsRepo) {
-				m.On("CreateContact", mock.Anything, mock.MatchedBy(func(c *models.Contact) bool {
-					return c.UserID == 1 && c.Name == "Alice" && c.Phone == validE164
-				})).Return(&models.Contact{ID: 5, UserID: 1, Name: "Alice", Phone: validE164}, nil).Once()
+			name:      "name too long",
+			mockSetup: func(m *MockContactsRepository) {},
+			args: args{
+				context.Background(),
+				&models.Contact{ID: 1, UserID: 123, Name: strings.Repeat("A", 33), Phone: "+79123456789"},
 			},
-			wantResult: &models.Contact{ID: 5, UserID: 1, Name: "Alice", Phone: validE164},
-			wantErr:    nil,
-		},
-		{
-			name:   "CreateContact repo error",
-			method: "CreateContact",
-			args:   []interface{}{context.Background(), &models.Contact{UserID: 2, Name: "Joe", Phone: validRaw}},
-			mockSetup: func(m *MockContactsRepo) {
-				m.On("CreateContact", mock.Anything, mock.Anything).
-					Return(nil, errDB).Once()
-			},
-			wantResult: nil,
-			wantErr:    errDB,
-		},
-		{
-			name:       "UpdateContact invalid name",
-			method:     "UpdateContact",
-			args:       []interface{}{context.Background(), 7, 3, &models.Contact{Name: "", Phone: validRaw}},
-			mockSetup:  func(m *MockContactsRepo) {},
 			wantResult: nil,
 			wantErr:    domain.ErrInvalidContactName,
 		},
 		{
-			name:       "UpdateContact invalid phone",
-			method:     "UpdateContact",
-			args:       []interface{}{context.Background(), 7, 3, &models.Contact{Name: "Joe", Phone: "123"}},
-			mockSetup:  func(m *MockContactsRepo) {},
+			name:      "invalid phone",
+			mockSetup: func(m *MockContactsRepository) {},
+			args: args{
+				ctx:     context.Background(),
+				contact: &models.Contact{UserID: 123, Name: "Alice", Phone: "not-a-phone"},
+			},
 			wantResult: nil,
 			wantErr:    domain.ErrInvalidContactPhone,
 		},
 		{
-			name:   "UpdateContact success",
-			method: "UpdateContact",
-			args:   []interface{}{context.Background(), 7, 3, &models.Contact{Name: "Joe", Phone: validRaw}},
-			mockSetup: func(m *MockContactsRepo) {
-				m.On("UpdateContact", mock.Anything, 7, 3, mock.MatchedBy(func(c *models.Contact) bool {
-					return c.Name == "Joe" && c.Phone == validE164
-				})).Return(&models.Contact{ID: 3, UserID: 7, Name: "Joe", Phone: validE164}, nil).Once()
+			name: "repository error",
+			mockSetup: func(m *MockContactsRepository) {
+				m.
+					On("CreateContact", mock.Anything, &models.Contact{UserID: 123, Name: "Alice", Phone: "+79123456789"}).
+					Return((*models.Contact)(nil), assert.AnError).
+					Once()
 			},
-			wantResult: &models.Contact{ID: 3, UserID: 7, Name: "Joe", Phone: validE164},
-			wantErr:    nil,
-		},
-		{
-			name:   "UpdateContact repo error",
-			method: "UpdateContact",
-			args:   []interface{}{context.Background(), 7, 3, &models.Contact{Name: "Sam", Phone: validRaw}},
-			mockSetup: func(m *MockContactsRepo) {
-				m.On("UpdateContact", mock.Anything, 7, 3, mock.Anything).
-					Return(nil, errDB).Once()
+			args: args{
+				ctx:     context.Background(),
+				contact: &models.Contact{UserID: 123, Name: "Alice", Phone: "+79123456789"},
 			},
 			wantResult: nil,
-			wantErr:    errDB,
-		},
-		{
-			name:   "DeleteContact success",
-			method: "DeleteContact",
-			args:   []interface{}{context.Background(), 9, 4},
-			mockSetup: func(m *MockContactsRepo) {
-				m.On("DeleteContact", mock.Anything, 9, 4).Return(nil).Once()
-			},
-			wantResult: nil,
-			wantErr:    nil,
-		},
-		{
-			name:   "DeleteContact error",
-			method: "DeleteContact",
-			args:   []interface{}{context.Background(), 9, 4},
-			mockSetup: func(m *MockContactsRepo) {
-				m.On("DeleteContact", mock.Anything, 9, 4).Return(errDB).Once()
-			},
-			wantResult: nil,
-			wantErr:    errDB,
+			wantErr:    assert.AnError,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockRepo := new(MockContactsRepo)
-			svc := service.NewContactsService(mockRepo)
-			tc.mockSetup(mockRepo)
+			m := new(MockContactsRepository)
+			tc.mockSetup(m)
+			svc := service.NewContactsService(m)
 
-			var (
-				res interface{}
-				err error
-			)
-			ctx := tc.args[0].(context.Context)
-
-			switch tc.method {
-			case "GetContactsByUserID":
-				res, err = svc.GetContactsByUserID(ctx, tc.args[1].(int))
-			case "GetContactByID":
-				res, err = svc.GetContactByID(ctx, tc.args[1].(int), tc.args[2].(int))
-			case "CreateContact":
-				res, err = svc.CreateContact(ctx, tc.args[1].(*models.Contact))
-			case "UpdateContact":
-				res, err = svc.UpdateContact(ctx, tc.args[1].(int), tc.args[2].(int), tc.args[3].(*models.Contact))
-			case "DeleteContact":
-				err = svc.DeleteContact(ctx, tc.args[1].(int), tc.args[2].(int))
-			}
-
+			res, err := svc.CreateContact(tc.args.ctx, tc.args.contact)
 			if tc.wantErr != nil {
 				assert.ErrorIs(t, err, tc.wantErr)
 			} else {
 				assert.NoError(t, err)
 			}
-			if tc.wantResult != nil {
-				assert.Equal(t, tc.wantResult, res)
-			}
-			mockRepo.AssertExpectations(t)
+			assert.Equal(t, tc.wantResult, res)
+			m.AssertExpectations(t)
 		})
 	}
+}
+
+func TestContactsService_UpdateContact(t *testing.T) {
+	type args struct {
+		ctx            context.Context
+		userID, cid    int
+		updatedContact *models.Contact
+	}
+
+	tests := []struct {
+		name       string
+		mockSetup  func(*MockContactsRepository)
+		args       args
+		wantResult *models.Contact
+		wantErr    error
+	}{
+		{
+			name: "success",
+			mockSetup: func(m *MockContactsRepository) {
+				normalized := "+79123456789"
+				input := &models.Contact{UserID: 123, Name: "Alice", Phone: normalized}
+				output := &models.Contact{ID: 42, UserID: 123, Name: "Alice", Phone: normalized}
+				m.
+					On("UpdateContact", mock.Anything, 123, 42, input).
+					Return(output, nil).
+					Once()
+			},
+			args: args{
+				ctx:            context.Background(),
+				userID:         123,
+				cid:            42,
+				updatedContact: &models.Contact{UserID: 123, Name: "Alice", Phone: "8 (912) 345-6789"},
+			},
+			wantResult: &models.Contact{ID: 42, UserID: 123, Name: "Alice", Phone: "+79123456789"},
+			wantErr:    nil,
+		},
+		{
+			name:      "name too short",
+			mockSetup: func(m *MockContactsRepository) {},
+			args: args{
+				ctx:            context.Background(),
+				userID:         123,
+				cid:            42,
+				updatedContact: &models.Contact{UserID: 123, Name: "", Phone: "+79123456789"},
+			},
+			wantResult: nil,
+			wantErr:    domain.ErrInvalidContactName,
+		},
+		{
+			name:      "name too long",
+			mockSetup: func(m *MockContactsRepository) {},
+			args: args{
+				ctx:            context.Background(),
+				userID:         123,
+				cid:            42,
+				updatedContact: &models.Contact{UserID: 123, Name: strings.Repeat("A", 33), Phone: "+79123456789"},
+			},
+			wantResult: nil,
+			wantErr:    domain.ErrInvalidContactName,
+		},
+		{
+			name:      "invalid phone",
+			mockSetup: func(m *MockContactsRepository) {},
+			args: args{
+				ctx:            context.Background(),
+				userID:         123,
+				cid:            42,
+				updatedContact: &models.Contact{UserID: 123, Name: "Alice", Phone: "not-a-number"},
+			},
+			wantResult: nil,
+			wantErr:    domain.ErrInvalidContactPhone,
+		},
+		{
+			name: "repository error",
+			mockSetup: func(m *MockContactsRepository) {
+				normalized := "+79123456789"
+				input := &models.Contact{UserID: 123, Name: "Alice", Phone: normalized}
+
+				m.
+					On("UpdateContact", mock.Anything, 123, 42, input).
+					Return((*models.Contact)(nil), assert.AnError).
+					Once()
+			},
+			args: args{
+				ctx:            context.Background(),
+				userID:         123,
+				cid:            42,
+				updatedContact: &models.Contact{UserID: 123, Name: "Alice", Phone: "+79123456789"},
+			},
+			wantResult: nil,
+			wantErr:    assert.AnError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(MockContactsRepository)
+			tc.mockSetup(m)
+			svc := service.NewContactsService(m)
+
+			res, err := svc.UpdateContact(tc.args.ctx, tc.args.userID, tc.args.cid, tc.args.updatedContact)
+
+			if tc.wantErr != nil {
+				assert.ErrorIs(t, err, tc.wantErr)
+				assert.Nil(t, res)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.wantResult, res)
+			}
+
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestContactsService_DeleteContact(t *testing.T) {
+	m := new(MockContactsRepository)
+	m.
+		On("DeleteContact", mock.Anything, 123, 42).
+		Return(nil).
+		Once()
+	svc := service.NewContactsService(m)
+
+	err := svc.DeleteContact(context.Background(), 123, 42)
+	assert.NoError(t, err)
+	m.AssertExpectations(t)
 }

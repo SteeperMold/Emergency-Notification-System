@@ -1,6 +1,8 @@
 version: "2"
 run:
   timeout: 2m
+  build-tags:
+    - integration
 
 output:
   formats:

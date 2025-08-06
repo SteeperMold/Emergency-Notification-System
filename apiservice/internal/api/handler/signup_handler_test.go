@@ -2,156 +2,130 @@ package handler_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/route"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/handler"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/bootstrap"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
-	"github.com/gorilla/mux"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap/zaptest"
 )
 
-func setupSignupServer(tx domain.DBConn) *mux.Router {
-	logger := zap.NewNop()
-	timeout := 2 * time.Second
-	jwtConfig := &bootstrap.JWTConfig{
-		AccessSecret:  "access",
-		AccessExpiry:  2 * time.Hour,
-		RefreshSecret: "refresh",
-		RefreshExpiry: 720 * time.Hour,
+func TestSignupHandler_Signup(t *testing.T) {
+	validReq := domain.SignupRequest{
+		Email:    "test@example.com",
+		Password: "SecurePass123!",
+	}
+	validUser := &models.User{
+		ID:    1,
+		Email: validReq.Email,
 	}
 
-	r := mux.NewRouter()
-	route.NewSignupRouter(r, tx, logger, timeout, jwtConfig)
-
-	return r
-}
-
-func TestSignupHandler(t *testing.T) {
-	type testCase struct {
+	tests := []struct {
 		name           string
-		setup          func(ctx context.Context, tx domain.DBConn)
-		useTx          bool
-		request        domain.SignupRequest
+		body           any
+		setupMock      func(m *MockSignupService)
 		expectedStatus int
-		expectBody     string
-		expectEmail    string
-		expectUserID   bool
-	}
-
-	testCases := []testCase{
+	}{
 		{
-			name:  "Success",
-			useTx: true,
-			setup: nil,
-			request: domain.SignupRequest{
-				Email:    "bob@example.com",
-				Password: "strongpass",
+			name: "success",
+			body: validReq,
+			setupMock: func(m *MockSignupService) {
+				m.
+					On("CreateUser", mock.Anything, &validReq).
+					Return(validUser, nil).
+					Once()
 			},
 			expectedStatus: http.StatusCreated,
-			expectEmail:    "bob@example.com",
-			expectUserID:   true,
 		},
 		{
-			name:  "InvalidEmail",
-			useTx: false,
-			request: domain.SignupRequest{
-				Email:    "bad",
-				Password: "strongpass",
+			name: "invalid email",
+			body: validReq,
+			setupMock: func(m *MockSignupService) {
+				m.
+					On("CreateUser", mock.Anything, &validReq).
+					Return((*models.User)(nil), domain.ErrInvalidEmail).
+					Once()
 			},
 			expectedStatus: http.StatusUnprocessableEntity,
-			expectBody:     "invalid email",
 		},
 		{
-			name:  "InvalidPassword",
-			useTx: false,
-			request: domain.SignupRequest{
-				Email:    "alice@example.com",
-				Password: "bad",
+			name: "invalid password",
+			body: validReq,
+			setupMock: func(m *MockSignupService) {
+				m.
+					On("CreateUser", mock.Anything, &validReq).
+					Return((*models.User)(nil), domain.ErrInvalidPassword).
+					Once()
 			},
 			expectedStatus: http.StatusUnprocessableEntity,
-			expectBody:     "invalid password",
 		},
 		{
-			name:  "EmailAlreadyExists",
-			useTx: true,
-			setup: func(ctx context.Context, tx domain.DBConn) {
-				_, err := tx.Exec(ctx,
-					`INSERT INTO users(email, password_hash) VALUES($1, $2)`,
-					"alice@example.com", "hashpw",
-				)
-				require.NoError(t, err)
-			},
-			request: domain.SignupRequest{
-				Email:    "alice@example.com",
-				Password: "anotherpass",
+			name: "email already exists",
+			body: validReq,
+			setupMock: func(m *MockSignupService) {
+				m.
+					On("CreateUser", mock.Anything, &validReq).
+					Return((*models.User)(nil), domain.ErrEmailAlreadyExists).
+					Once()
 			},
 			expectedStatus: http.StatusConflict,
-			expectBody:     "email already exists",
+		},
+		{
+			name: "internal error on create",
+			body: validReq,
+			setupMock: func(m *MockSignupService) {
+				m.
+					On("CreateUser", mock.Anything, &validReq).
+					Return((*models.User)(nil), assert.AnError).
+					Once()
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "invalid json body",
+			body:           "not-json",
+			setupMock:      func(m *MockSignupService) {},
+			expectedStatus: http.StatusBadRequest,
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			if tc.useTx {
-				testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-					if tc.setup != nil {
-						tc.setup(ctx, tx)
-					}
-					runSignupTest(t, tx, tc)
-				})
-			} else {
-				runSignupTest(t, nil, tc)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(MockSignupService)
+			if tt.setupMock != nil {
+				tt.setupMock(m)
 			}
+
+			jwtCfg := &bootstrap.JWTConfig{
+				AccessSecret:  "accesssecret",
+				RefreshSecret: "refreshsecret",
+				AccessExpiry:  time.Minute,
+				RefreshExpiry: time.Hour,
+			}
+
+			h := handler.NewSignupHandler(m, zaptest.NewLogger(t), time.Second*2, jwtCfg)
+
+			var bodyBytes []byte
+			if str, ok := tt.body.(string); ok {
+				bodyBytes = []byte(str)
+			} else {
+				bodyBytes, _ = json.Marshal(tt.body)
+			}
+
+			r := httptest.NewRequest(http.MethodPost, "/signup", bytes.NewReader(bodyBytes))
+			w := httptest.NewRecorder()
+
+			h.Signup(w, r)
+
+			assert.Equal(t, tt.expectedStatus, w.Code)
+			m.AssertExpectations(t)
 		})
-	}
-}
-
-func runSignupTest(t *testing.T, tx domain.DBConn, tc struct {
-	name           string
-	setup          func(ctx context.Context, tx domain.DBConn)
-	useTx          bool
-	request        domain.SignupRequest
-	expectedStatus int
-	expectBody     string
-	expectEmail    string
-	expectUserID   bool
-}) {
-	router := setupSignupServer(tx)
-	srv := httptest.NewServer(router)
-	defer srv.Close()
-
-	reqBody, _ := json.Marshal(tc.request)
-	resp, err := http.Post(srv.URL+"/signup", "application/json", bytes.NewReader(reqBody))
-	require.NoError(t, err)
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(resp.Body)
-
-	assert.Equal(t, tc.expectedStatus, resp.StatusCode)
-	body, _ := io.ReadAll(resp.Body)
-
-	if tc.expectedStatus == http.StatusCreated {
-		var u domain.SignupResponse
-		err = json.Unmarshal(body, &u)
-		require.NoError(t, err)
-		assert.Equal(t, tc.expectEmail, u.User.Email)
-		if tc.expectUserID {
-			assert.NotZero(t, u.User.ID)
-		}
-	} else {
-		assert.Contains(t, string(body), tc.expectBody)
 	}
 }

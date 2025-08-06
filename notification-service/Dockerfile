@@ -22,7 +22,6 @@ WORKDIR /app
 
 COPY --from=builder /build/notification-service .
 COPY .env .
-COPY ./database/migrations ./database/migrations
 
 EXPOSE 8080
 

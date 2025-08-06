@@ -24,10 +24,6 @@ func NewTwilioCallbackService(r domain.NotificationRepository, maxAttempts int) 
 }
 
 // ProcessCallback handles an incoming Twilio status callback.
-// It parses the idStr into a UUID, retrieves the existing notification record,
-// and computes the new status: StatusSent on success, StatusPending if retryable,
-// or StatusFailed if maximum attempts have been exceeded. Finally, it updates
-// the record's status in the repository.
 func (s *TwilioCallbackService) ProcessCallback(ctx context.Context, idStr, status string) error {
 	id, err := uuid.Parse(idStr)
 	if err != nil {

@@ -1,13 +1,10 @@
-.PHONY: test lint
+.PHONY: unit-test integration-test lint
 
-test:
-	docker compose -f docker-compose.test.yaml up \
-		--build \
-		--abort-on-container-exit test \
-		--exit-code-from test; \
-	DOWN_EXIT=$$?; \
-	docker compose -f docker-compose.test.yaml down --volumes; \
-	exit $$DOWN_EXIT
+unit-test:
+	go test -v -race -cover ./...
+
+integration-test:
+	go test -v -race -cover ./... -tags=integration
 
 lint:
 	golangci-lint run ./...

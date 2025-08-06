@@ -76,13 +76,13 @@ func (nr *NotificationRepository) ChangeNotificationStatus(ctx context.Context, 
 		WHERE id = $1
 	`
 
-	_, err := nr.db.Exec(ctx, q, id, newStatus)
+	cmdTag, err := nr.db.Exec(ctx, q, id, newStatus)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.ErrNotificationNotExists
-		}
 		return err
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return domain.ErrNotificationNotExists
 	}
 
 	return nil

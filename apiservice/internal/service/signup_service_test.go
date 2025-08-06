@@ -2,9 +2,8 @@ package service_test
 
 import (
 	"context"
-	"fmt"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
@@ -15,106 +14,97 @@ import (
 )
 
 func TestSignupService_CreateUser(t *testing.T) {
-	mockRepo := new(MockRepository)
-	svc := service.NewSignupService(mockRepo)
-
-	var (
-		ErrNotFound  = fmt.Errorf("not found")
-		ErrDBFailure = fmt.Errorf("db failure")
-	)
-
 	tests := []struct {
-		name        string
-		req         *domain.SignupRequest
-		setupMocks  func()
-		wantErr     error
-		wantCreated *models.User
+		name      string
+		req       *domain.SignupRequest
+		setupMock func(m *MockUserRepository)
+		wantErr   error
 	}{
 		{
-			name:       "invalid email format",
-			req:        &domain.SignupRequest{Email: "not-an-email", Password: "validPass"},
-			setupMocks: func() {},
-			wantErr:    domain.ErrInvalidEmail,
+			name:    "invalid email",
+			req:     &domain.SignupRequest{Email: "not-an-email", Password: "validPass"},
+			wantErr: domain.ErrInvalidEmail,
 		},
 		{
-			name:       "password too short",
-			req:        &domain.SignupRequest{Email: "a@b.com", Password: "1234"},
-			setupMocks: func() {},
-			wantErr:    domain.ErrInvalidPassword,
+			name:    "password too short",
+			req:     &domain.SignupRequest{Email: "a@b.com", Password: "1234"},
+			wantErr: domain.ErrInvalidPassword,
+		},
+		{
+			name:    "password too long",
+			req:     &domain.SignupRequest{Email: "a@b.com", Password: strings.Repeat("x", 101)},
+			wantErr: domain.ErrInvalidPassword,
 		},
 		{
 			name: "email already exists",
-			req:  &domain.SignupRequest{Email: "alice@example.com", Password: "longenough"},
-			setupMocks: func() {
-				mockRepo.
-					On("GetUserByEmail", mock.Anything, "alice@example.com").
-					Return(&models.User{Email: "alice@example.com"}, nil).
+			req:  &domain.SignupRequest{Email: "user@example.com", Password: "goodPass"},
+			setupMock: func(m *MockUserRepository) {
+				m.
+					On("GetUserByEmail", mock.Anything, "user@example.com").
+					Return(&models.User{Email: "user@example.com"}, nil).
 					Once()
 			},
 			wantErr: domain.ErrEmailAlreadyExists,
 		},
 		{
-			name: "successful create",
-			req:  &domain.SignupRequest{Email: "bob@example.com", Password: "securePassword"},
-			setupMocks: func() {
-				mockRepo.
-					On("GetUserByEmail", mock.Anything, "bob@example.com").
-					Return(nil, ErrNotFound).
+			name: "repo.CreateUser failure",
+			req:  &domain.SignupRequest{Email: "new@user.com", Password: "goodPass"},
+			setupMock: func(m *MockUserRepository) {
+				// No existing user
+				m.
+					On("GetUserByEmail", mock.Anything, "new@user.com").
+					Return((*models.User)(nil), domain.ErrUserNotExists).
 					Once()
-
-				created := &models.User{
-					ID:           42,
-					Email:        "bob@example.com",
-					CreationTime: time.Now(),
-				}
-				mockRepo.
+				// CreateUser returns DB error
+				m.
 					On("CreateUser", mock.Anything, mock.MatchedBy(func(u *models.User) bool {
-						err := bcrypt.CompareHashAndPassword(
-							[]byte(u.PasswordHash),
-							[]byte("securePassword"),
-						)
-						return u.Email == "bob@example.com" && err == nil
+						return u.Email == "new@user.com" && len(u.PasswordHash) > 0
 					})).
-					Return(created, nil).
+					Return((*models.User)(nil), assert.AnError).
 					Once()
 			},
-			wantErr:     nil,
-			wantCreated: &models.User{ID: 42, Email: "bob@example.com"},
+			wantErr: assert.AnError,
 		},
 		{
-			name: "repository CreateUser error",
-			req:  &domain.SignupRequest{Email: "z@z.com", Password: "validPass"},
-			setupMocks: func() {
-				mockRepo.
-					On("GetUserByEmail", mock.Anything, "z@z.com").
-					Return(nil, ErrNotFound).
+			name: "success",
+			req:  &domain.SignupRequest{Email: "a@b.com", Password: "goodPass"},
+			setupMock: func(m *MockUserRepository) {
+				// Not found on lookup
+				m.
+					On("GetUserByEmail", mock.Anything, "a@b.com").
+					Return((*models.User)(nil), domain.ErrUserNotExists).
 					Once()
-
-				mockRepo.
-					On("CreateUser", mock.Anything, mock.AnythingOfType("*models.User")).
-					Return(nil, ErrDBFailure).
+				// CreateUser returns created user
+				m.
+					On("CreateUser", mock.Anything, mock.MatchedBy(func(u *models.User) bool {
+						// ensure email set and password hashed
+						return u.Email == "a@b.com" && bcrypt.CompareHashAndPassword(
+							[]byte(u.PasswordHash), []byte("goodPass")) == nil
+					})).
+					Return(&models.User{ID: 123, Email: "a@b.com", PasswordHash: "ignored"}, nil).
 					Once()
 			},
-			wantErr: ErrDBFailure,
+			wantErr: nil,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockRepo.ExpectedCalls = nil
-			mockRepo.Calls = nil
-			tc.setupMocks()
+			mockRepo := new(MockUserRepository)
+			if tc.setupMock != nil {
+				tc.setupMock(mockRepo)
+			}
 
-			got, err := svc.CreateUser(context.Background(), tc.req)
+			svc := service.NewSignupService(mockRepo)
+			usr, err := svc.CreateUser(context.Background(), tc.req)
 
 			if tc.wantErr != nil {
 				assert.ErrorIs(t, err, tc.wantErr)
-				assert.Nil(t, got)
+				assert.Nil(t, usr)
 			} else {
 				assert.NoError(t, err)
-				assert.NotNil(t, got)
-				assert.Equal(t, tc.wantCreated.ID, got.ID)
-				assert.Equal(t, tc.wantCreated.Email, got.Email)
+				assert.Equal(t, "a@b.com", usr.Email)
+				assert.NotEmpty(t, usr.PasswordHash)
 			}
 
 			mockRepo.AssertExpectations(t)

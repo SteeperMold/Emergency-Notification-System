@@ -2,147 +2,134 @@ package handler_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/route"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/handler"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/bootstrap"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
-	"github.com/gorilla/mux"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
-func setupLoginServer(tx domain.DBConn) *mux.Router {
-	logger := zap.NewNop()
-	timeout := 2 * time.Second
-	jwtConfig := &bootstrap.JWTConfig{
-		AccessSecret:  "access",
-		AccessExpiry:  2 * time.Hour,
-		RefreshSecret: "refresh",
-		RefreshExpiry: 720 * time.Hour,
+func TestLoginHandler_Login(t *testing.T) {
+	jwtCfg := &bootstrap.JWTConfig{
+		AccessSecret:  "access-secret",
+		AccessExpiry:  time.Minute,
+		RefreshSecret: "refresh-secret",
+		RefreshExpiry: time.Hour,
 	}
 
-	r := mux.NewRouter()
-	route.NewLoginRoute(r, tx, logger, timeout, jwtConfig)
-
-	return r
-}
-
-func TestLoginHandler(t *testing.T) {
-	type testCase struct {
-		name           string
-		setupUser      func(ctx context.Context, tx domain.DBConn)
-		email          string
-		password       string
-		expectedStatus int
-		expectBody     string
-		expectEmail    string
-		expectTokens   bool
-	}
-
-	testCases := []testCase{
+	tests := []struct {
+		name             string
+		body             string
+		setupMock        func(s *MockLoginService)
+		wantStatus       int
+		expectTokenPairs bool
+	}{
 		{
-			name: "Success",
-			setupUser: func(ctx context.Context, tx domain.DBConn) {
-				hash, _ := bcrypt.GenerateFromPassword([]byte("strongpass"), bcrypt.DefaultCost)
-				_, err := tx.Exec(ctx,
-					`INSERT INTO users(email, password_hash) VALUES($1, $2)`,
-					"bob@example.com", string(hash),
-				)
-				require.NoError(t, err)
+			name:       "malformed JSON",
+			body:       `{not-a-json}`,
+			setupMock:  func(m *MockLoginService) {},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name: "user not found",
+			body: `{"email":"x@y.com","password":"p"}`,
+			setupMock: func(m *MockLoginService) {
+				m.
+					On("GetUserByEmail", mock.Anything, "x@y.com").
+					Return((*models.User)(nil), domain.ErrUserNotExists).
+					Once()
 			},
-			email:          "bob@example.com",
-			password:       "strongpass",
-			expectedStatus: http.StatusOK,
-			expectEmail:    "bob@example.com",
-			expectTokens:   true,
+			wantStatus: http.StatusUnauthorized,
 		},
 		{
-			name:           "InvalidEmail",
-			setupUser:      nil,
-			email:          "bad",
-			password:       "strongpass",
-			expectedStatus: http.StatusUnauthorized,
-			expectBody:     "invalid credentials",
-		},
-		{
-			name: "InvalidPassword",
-			setupUser: func(ctx context.Context, tx domain.DBConn) {
-				hash, _ := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
-				_, err := tx.Exec(ctx,
-					`INSERT INTO users(email, password_hash) VALUES($1, $2)`,
-					"alice@example.com", string(hash),
-				)
-				require.NoError(t, err)
+			name: "service error",
+			body: `{"email":"err@y.com","password":"p"}`,
+			setupMock: func(m *MockLoginService) {
+				m.
+					On("GetUserByEmail", mock.Anything, "err@y.com").
+					Return((*models.User)(nil), assert.AnError).
+					Once()
 			},
-			email:          "alice@example.com",
-			password:       "wrongpass",
-			expectedStatus: http.StatusUnauthorized,
-			expectBody:     "invalid credentials",
+			wantStatus: http.StatusInternalServerError,
 		},
 		{
-			name:           "UserNotFound",
-			setupUser:      nil,
-			email:          "nonexistent@example.com",
-			password:       "somepass",
-			expectedStatus: http.StatusUnauthorized,
-			expectBody:     "invalid credentials",
+			name: "bad credentials",
+			body: `{"email":"u@b.com","password":"wrong"}`,
+			setupMock: func(m *MockLoginService) {
+				user := &models.User{Email: "u@b.com", PasswordHash: "hash"}
+				m.
+					On("GetUserByEmail", mock.Anything, "u@b.com").
+					Return(user, nil).
+					Once()
+				m.
+					On("CompareCredentials", user, &domain.LoginRequest{
+						Email:    "u@b.com",
+						Password: "wrong",
+					}).
+					Return(false).
+					Once()
+			},
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name: "success",
+			body: `{"email":"good@b.com","password":"right"}`,
+			setupMock: func(m *MockLoginService) {
+				user := &models.User{ID: 42, Email: "good@b.com", PasswordHash: ""}
+				m.
+					On("GetUserByEmail", mock.Anything, "good@b.com").
+					Return(user, nil).
+					Once()
+				m.
+					On("CompareCredentials", user, &domain.LoginRequest{
+						Email:    "good@b.com",
+						Password: "right",
+					}).
+					Return(true).
+					Once()
+			},
+			wantStatus:       http.StatusOK,
+			expectTokenPairs: true,
 		},
 	}
 
-	for _, tc := range testCases {
+	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-				if tc.setupUser != nil {
-					tc.setupUser(ctx, tx)
-				}
+			m := new(MockLoginService)
+			tc.setupMock(m)
 
-				router := setupLoginServer(tx)
-				srv := httptest.NewServer(router)
-				defer srv.Close()
+			logger := zap.NewNop()
+			h := handler.NewLoginHandler(m, logger, time.Second, jwtCfg)
 
-				reqBody, _ := json.Marshal(domain.LoginRequest{
-					Email:    tc.email,
-					Password: tc.password,
-				})
+			req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(tc.body))
+			rr := httptest.NewRecorder()
 
-				resp, err := http.Post(srv.URL+"/login", "application/json", bytes.NewReader(reqBody))
-				require.NoError(t, err)
-				defer func(Body io.ReadCloser) {
-					err := Body.Close()
-					if err != nil {
-						panic(err)
-					}
-				}(resp.Body)
+			h.Login(rr, req)
+			resp := rr.Result()
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
-				assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+			assert.Equal(t, tc.wantStatus, resp.StatusCode)
 
-				body, _ := io.ReadAll(resp.Body)
+			if tc.expectTokenPairs {
+				var got domain.LoginResponse
+				err := json.NewDecoder(resp.Body).Decode(&got)
+				assert.NoError(t, err, "decoding response JSON")
+				assert.Equal(t, "good@b.com", got.User.Email)
+				assert.NotEmpty(t, got.AccessToken, "access token should be set")
+				assert.NotEmpty(t, got.RefreshToken, "refresh token should be set")
+			}
 
-				if tc.expectedStatus == http.StatusOK {
-					var lr domain.LoginResponse
-					err = json.Unmarshal(body, &lr)
-					require.NoError(t, err)
-
-					assert.Equal(t, tc.expectEmail, lr.User.Email)
-
-					if tc.expectTokens {
-						assert.NotEmpty(t, lr.AccessToken)
-						assert.NotEmpty(t, lr.RefreshToken)
-					}
-				} else {
-					assert.Contains(t, string(body), tc.expectBody)
-				}
-			})
+			m.AssertExpectations(t)
 		})
 	}
 }

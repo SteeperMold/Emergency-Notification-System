@@ -5,7 +5,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./database/migrations/:/migrations
+      - ./../db/migrations/notifications/:/migrations
     env_file:
       - .env
     command: [

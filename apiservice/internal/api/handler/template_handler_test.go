@@ -2,354 +2,443 @@ package handler_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
-	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/route"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/handler"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"github.com/stretchr/testify/mock"
 )
 
-func setupTemplateServer(tx domain.DBConn, userID any) *mux.Router {
-	logger := zap.NewNop()
-	timeout := 2 * time.Second
-
-	r := mux.NewRouter()
-	if userID != nil {
-		r.Use(mockUserMiddleware(userID))
-	}
-	route.NewTemplateRoute(r, tx, logger, timeout)
-	return r
-}
-
-type templateTC struct {
-	name           string
-	method         string
-	path           string
-	body           interface{}
-	useTx          bool
-	setup          func(ctx context.Context, tx domain.DBConn) (any, string)
-	expectedStatus int
-	expectContains string
-	expectJSON     bool
-}
-
-func TestTemplateHandler(t *testing.T) {
-	cases := []templateTC{
+// --- GET /templates ---
+func TestTemplateHandler_Get(t *testing.T) {
+	tests := []struct {
+		name       string
+		userID     int
+		setup      func(m *MockTemplateService)
+		wantStatus int
+		wantBody   []*models.Template
+	}{
 		{
-			name:           "Get_NoUserID",
-			method:         http.MethodGet,
-			path:           "/template",
-			useTx:          false,
-			expectedStatus: http.StatusInternalServerError,
-			expectContains: "internal server error",
-		},
-		{
-			name:   "Get_EmptyList",
-			method: http.MethodGet,
-			path:   "/template",
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid int
-				now := time.Now().UTC().Truncate(time.Second)
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash,created_at) VALUES($1,$2,$3) RETURNING id`,
-					"a@a.com", "h", now,
-				).Scan(&uid)
-				require.NoError(t, err)
-				return uid, ""
+			name:   "success",
+			userID: 1,
+			setup: func(m *MockTemplateService) {
+				m.
+					On("GetTemplatesByUserID", mock.Anything, 1).
+					Return([]*models.Template{{ID: 1, UserID: 1, Name: "T1", Body: "B1"}}, nil).
+					Once()
 			},
-			expectedStatus: http.StatusOK,
-			expectJSON:     true,
+			wantStatus: http.StatusOK,
+			wantBody:   []*models.Template{{ID: 1, UserID: 1, Name: "T1", Body: "B1"}},
 		},
 		{
-			name:   "Post_InvalidBody",
-			method: http.MethodPost,
-			path:   "/template",
-			body:   map[string]string{"body": ""},
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid int
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"b@b.com", "h",
-				).Scan(&uid)
-				require.NoError(t, err)
-				return uid, ""
+			name:   "service error",
+			userID: 2,
+			setup: func(m *MockTemplateService) {
+				m.
+					On("GetTemplatesByUserID", mock.Anything, 2).
+					Return(([]*models.Template)(nil), assert.AnError).
+					Once()
 			},
-			expectedStatus: http.StatusUnprocessableEntity,
-			expectContains: "invalid template",
-		},
-		{
-			name:   "Post_Success",
-			method: http.MethodPost,
-			path:   "/template",
-			body:   map[string]string{"body": "Hello", "name": "name"},
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid int
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"c@c.com", "h",
-				).Scan(&uid)
-				require.NoError(t, err)
-				return uid, ""
-			},
-			expectedStatus: http.StatusCreated,
-			expectJSON:     true,
-		},
-		{
-			name:           "GetById_BadID",
-			method:         http.MethodGet,
-			path:           "/template/xyz",
-			useTx:          true,
-			expectedStatus: http.StatusInternalServerError,
-			expectContains: "internal server error",
-		},
-		{
-			name:   "GetById_NotFound",
-			method: http.MethodGet,
-			path:   "/template/9999",
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid int
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"d@d.com", "h",
-				).Scan(&uid)
-				require.NoError(t, err)
-				return uid, ""
-			},
-			expectedStatus: http.StatusNotFound,
-			expectContains: "template not exists",
-		},
-		{
-			name:   "GetById_Success",
-			method: http.MethodGet,
-			path:   "/template/",
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid, tid int
-				now := time.Now().UTC().Truncate(time.Second)
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"e@e.com", "h",
-				).Scan(&uid)
-				require.NoError(t, err)
-				err = tx.QueryRow(ctx,
-					`INSERT INTO message_templates(user_id,name,body,created_at,updated_at) VALUES($1,$2,$3,$4,$4) RETURNING id`,
-					uid, "name", "T", now,
-				).Scan(&tid)
-				require.NoError(t, err)
-				return uid, strconv.Itoa(tid)
-			},
-			expectedStatus: http.StatusOK,
-			expectJSON:     true,
-		},
-		{
-			name:   "Put_BadID",
-			method: http.MethodPut,
-			path:   "/template/abc",
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				return 1, ""
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectContains: "invalid id",
-		},
-		{
-			name:   "Put_InvalidBody",
-			method: http.MethodPut,
-			path:   "/template/",
-			body:   map[string]string{"body": ""}, // too short
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid, tid int
-				// create user + template
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"x@x.com", "h",
-				).Scan(&uid)
-				require.NoError(t, err)
-				err = tx.QueryRow(ctx,
-					`INSERT INTO message_templates(user_id,name,body,created_at,updated_at)
-					 VALUES($1,$2,$3,now(),now()) RETURNING id`,
-					uid, "name", "orig",
-				).Scan(&tid)
-				require.NoError(t, err)
-				return uid, strconv.Itoa(tid)
-			},
-			expectedStatus: http.StatusUnprocessableEntity,
-			expectContains: "invalid template",
-		},
-		{
-			name:   "Put_NotFound",
-			method: http.MethodPut,
-			path:   "/template/",
-			body:   map[string]string{"body": "NewBody", "name": "newName"},
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				// only user, no template
-				var uid int
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"y@y.com", "h",
-				).Scan(&uid)
-				require.NoError(t, err)
-				return uid, "9999"
-			},
-			expectedStatus: http.StatusNotFound,
-			expectContains: "template not exists",
-		},
-		{
-			name:   "Put_Success",
-			method: http.MethodPut,
-			path:   "/template/",
-			body:   map[string]string{"body": "Updated", "name": "name"},
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid, tid int
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"z@z.com", "h",
-				).Scan(&uid)
-				require.NoError(t, err)
-				err = tx.QueryRow(ctx,
-					`INSERT INTO message_templates(user_id,name,body,created_at,updated_at)
-					 VALUES($1,$2,$3,now(),now()) RETURNING id`,
-					uid, "name", "Original",
-				).Scan(&tid)
-				require.NoError(t, err)
-				return uid, strconv.Itoa(tid)
-			},
-			expectedStatus: http.StatusOK,
-			expectJSON:     true,
-		},
-
-		// DELETE -------------------------------------------------------------
-
-		{
-			name:   "Delete_BadID",
-			method: http.MethodDelete,
-			path:   "/template/abc",
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				return 1, ""
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectContains: "invalid id",
-		},
-		{
-			name:   "Delete_NotFound",
-			method: http.MethodDelete,
-			path:   "/template/",
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid int
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"n@n.com", "h",
-				).Scan(&uid)
-				require.NoError(t, err)
-				return uid, "9999"
-			},
-			expectedStatus: http.StatusNotFound,
-			expectContains: "template not exists",
-		},
-		{
-			name:   "Delete_Success",
-			method: http.MethodDelete,
-			path:   "/template/",
-			useTx:  true,
-			setup: func(ctx context.Context, tx domain.DBConn) (any, string) {
-				var uid, tid int
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id`,
-					"delt@d.com", "h",
-				).Scan(&uid)
-				require.NoError(t, err)
-				err = tx.QueryRow(ctx,
-					`INSERT INTO message_templates(user_id,name,body,created_at,updated_at)
-					 VALUES($1,$2,$3,now(),now()) RETURNING id`,
-					uid, "name", "ToDelete",
-				).Scan(&tid)
-				require.NoError(t, err)
-				return uid, strconv.Itoa(tid)
-			},
-			expectedStatus: http.StatusNoContent,
+			wantStatus: http.StatusInternalServerError,
 		},
 	}
 
-	for _, tc := range cases {
+	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			run := func(ctx context.Context, tx domain.DBConn) {
-				var userID any
-				var tmplID string
-				if tc.setup != nil {
-					userID, tmplID = tc.setup(ctx, tx)
-				}
-				runTemplateTest(t, tx, tc, userID, tmplID)
-			}
+			m := new(MockTemplateService)
+			tc.setup(m)
+			h := handler.NewTemplateHandler(m, logger, timeout)
 
-			if tc.useTx {
-				testutils.WithRollback(t, run)
-			} else {
-				run(context.Background(), nil)
+			req := httptest.NewRequest("GET", "/templates", nil)
+			req = injectUserID(req, tc.userID)
+			rr := httptest.NewRecorder()
+
+			h.Get(rr, req)
+			res := rr.Result()
+			defer func() {
+				_ = res.Body.Close()
+			}()
+
+			assert.Equal(t, tc.wantStatus, res.StatusCode)
+			if tc.wantStatus == http.StatusOK {
+				var got []*models.Template
+				err := json.NewDecoder(res.Body).Decode(&got)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.wantBody, got)
 			}
 		})
 	}
 }
 
-func runTemplateTest(
-	t *testing.T,
-	tx domain.DBConn,
-	tc templateTC,
-	userID any,
-	tmplID string,
-) {
-	router := setupTemplateServer(tx, userID)
-	srv := httptest.NewServer(router)
-	defer srv.Close()
-
-	var bodyReader io.Reader
-	if tc.body != nil {
-		bs, _ := json.Marshal(tc.body)
-		bodyReader = bytes.NewReader(bs)
+// --- GET /templates/{id} ---
+func TestTemplateHandler_GetByID(t *testing.T) {
+	tests := []struct {
+		name       string
+		userID     int
+		idParam    string
+		setup      func(m *MockTemplateService)
+		wantStatus int
+		wantBody   *models.Template
+	}{
+		{
+			name:       "bad id",
+			userID:     1,
+			idParam:    "abc",
+			setup:      func(m *MockTemplateService) {},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "not found",
+			userID:  1,
+			idParam: "10",
+			setup: func(m *MockTemplateService) {
+				m.
+					On("GetTemplateByID", mock.Anything, 1, 10).
+					Return((*models.Template)(nil), domain.ErrTemplateNotExists).
+					Once()
+			},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:    "service error",
+			userID:  1,
+			idParam: "11",
+			setup: func(m *MockTemplateService) {
+				m.
+					On("GetTemplateByID", mock.Anything, 1, 11).
+					Return((*models.Template)(nil), assert.AnError).
+					Once()
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			name:    "success",
+			userID:  1,
+			idParam: "5",
+			setup: func(m *MockTemplateService) {
+				m.
+					On("GetTemplateByID", mock.Anything, 1, 5).
+					Return(&models.Template{ID: 5, UserID: 1, Name: "N", Body: "P"}, nil).
+					Once()
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   &models.Template{ID: 5, UserID: 1, Name: "N", Body: "P"},
+		},
 	}
 
-	url := srv.URL + tc.path
-	if tmplID != "" {
-		url += tmplID
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(MockTemplateService)
+			tc.setup(m)
+			h := handler.NewTemplateHandler(m, logger, timeout)
+
+			req := httptest.NewRequest("GET", "/templates/"+tc.idParam, nil)
+			req = injectUserID(req, tc.userID)
+			req = mux.SetURLVars(req, map[string]string{"id": tc.idParam})
+			rr := httptest.NewRecorder()
+
+			h.GetByID(rr, req)
+			res := rr.Result()
+			defer func() {
+				_ = res.Body.Close()
+			}()
+
+			assert.Equal(t, tc.wantStatus, res.StatusCode)
+			if tc.wantStatus == http.StatusOK {
+				var got models.Template
+				err := json.NewDecoder(res.Body).Decode(&got)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.wantBody, &got)
+			}
+		})
+	}
+}
+
+// --- POST /templates ---
+func TestTemplateHandler_Post(t *testing.T) {
+	tests := []struct {
+		name       string
+		userID     int
+		body       any
+		setup      func(m *MockTemplateService)
+		wantStatus int
+		wantBody   *models.Template
+	}{
+		{
+			name:       "invalid json",
+			userID:     1,
+			body:       `{"name":}`,
+			setup:      func(m *MockTemplateService) {},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "invalid template",
+			userID: 1,
+			body:   domain.PostTemplateRequest{Name: "", Body: "B"},
+			setup: func(m *MockTemplateService) {
+				m.
+					On("CreateTemplate", mock.Anything, mock.Anything).
+					Return((*models.Template)(nil), domain.ErrInvalidTemplate).
+					Once()
+			},
+			wantStatus: http.StatusUnprocessableEntity,
+		},
+		{
+			name:   "conflict",
+			userID: 1,
+			body:   domain.PostTemplateRequest{Name: "N", Body: "B"},
+			setup: func(m *MockTemplateService) {
+				m.
+					On("CreateTemplate", mock.Anything, &models.Template{UserID: 1, Name: "N", Body: "B"}).
+					Return((*models.Template)(nil), domain.ErrTemplateAlreadyExists).
+					Once()
+			},
+			wantStatus: http.StatusConflict,
+		},
+		{
+			name:   "success",
+			userID: 1,
+			body:   domain.PostTemplateRequest{Name: "N", Body: "B"},
+			setup: func(m *MockTemplateService) {
+				m.
+					On("CreateTemplate", mock.Anything, &models.Template{UserID: 1, Name: "N", Body: "B"}).
+					Return(&models.Template{ID: 7, UserID: 1, Name: "N", Body: "B"}, nil).
+					Once()
+			},
+			wantStatus: http.StatusCreated,
+			wantBody:   &models.Template{ID: 7, UserID: 1, Name: "N", Body: "B"},
+		},
 	}
 
-	req, err := http.NewRequest(tc.method, url, bodyReader)
-	require.NoError(t, err)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(MockTemplateService)
+			tc.setup(m)
+			h := handler.NewTemplateHandler(m, logger, timeout)
 
-	resp, err := http.DefaultClient.Do(req)
-	require.NoError(t, err)
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(resp.Body)
+			var buf bytes.Buffer
+			err := json.NewEncoder(&buf).Encode(tc.body)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	require.Equal(t, tc.expectedStatus, resp.StatusCode)
-	b, _ := io.ReadAll(resp.Body)
-	if tc.expectJSON {
-		var v interface{}
-		require.NoError(t, json.Unmarshal(b, &v))
-	} else if tc.expectContains != "" {
-		assert.Contains(t, string(b), tc.expectContains)
+			req := httptest.NewRequest("POST", "/templates", &buf)
+			req = injectUserID(req, tc.userID)
+			rr := httptest.NewRecorder()
+
+			h.Post(rr, req)
+			res := rr.Result()
+			defer func() {
+				_ = res.Body.Close()
+			}()
+
+			assert.Equal(t, tc.wantStatus, res.StatusCode)
+			if tc.wantBody != nil {
+				var got models.Template
+				err := json.NewDecoder(res.Body).Decode(&got)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.wantBody, &got)
+			}
+		})
+	}
+}
+
+// --- PUT /templates/{id} ---
+func TestTemplateHandler_Put(t *testing.T) {
+	tests := []struct {
+		name       string
+		userID     int
+		idParam    string
+		body       any
+		setup      func(m *MockTemplateService)
+		wantStatus int
+		wantBody   *models.Template
+	}{
+		{
+			name:       "bad id",
+			userID:     1,
+			idParam:    "x",
+			body:       nil,
+			setup:      func(m *MockTemplateService) {},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "bad json",
+			userID:     1,
+			idParam:    "1",
+			body:       `{"name":`,
+			setup:      func(m *MockTemplateService) {},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "invalid template",
+			userID:  1,
+			idParam: "2",
+			body:    domain.PutTemplateRequest{Name: "", Body: "B"},
+			setup: func(m *MockTemplateService) {
+				m.
+					On("UpdateTemplate", mock.Anything, 1, 2, mock.Anything).
+					Return((*models.Template)(nil), domain.ErrInvalidTemplate).
+					Once()
+			},
+			wantStatus: http.StatusUnprocessableEntity,
+		},
+		{
+			name:    "not found",
+			userID:  1,
+			idParam: "3",
+			body:    domain.PutTemplateRequest{Name: "N", Body: "B"},
+			setup: func(m *MockTemplateService) {
+				m.
+					On("UpdateTemplate", mock.Anything, 1, 3, &models.Template{UserID: 1, Name: "N", Body: "B"}).
+					Return((*models.Template)(nil), domain.ErrTemplateNotExists).
+					Once()
+			},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:    "conflict",
+			userID:  1,
+			idParam: "4",
+			body:    domain.PutTemplateRequest{Name: "N", Body: "B"},
+			setup: func(m *MockTemplateService) {
+				m.
+					On("UpdateTemplate", mock.Anything, 1, 4, &models.Template{UserID: 1, Name: "N", Body: "B"}).
+					Return((*models.Template)(nil), domain.ErrTemplateAlreadyExists).
+					Once()
+			},
+			wantStatus: http.StatusConflict,
+		},
+		{
+			name:    "success",
+			userID:  1,
+			idParam: "5",
+			body:    domain.PutTemplateRequest{Name: "N", Body: "B"},
+			setup: func(m *MockTemplateService) {
+				m.
+					On("UpdateTemplate", mock.Anything, 1, 5, &models.Template{UserID: 1, Name: "N", Body: "B"}).
+					Return(&models.Template{ID: 5, UserID: 1, Name: "N", Body: "B"}, nil).
+					Once()
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   &models.Template{ID: 5, UserID: 1, Name: "N", Body: "B"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(MockTemplateService)
+			tc.setup(m)
+			h := handler.NewTemplateHandler(m, logger, timeout)
+
+			var buf bytes.Buffer
+			if tc.body != nil {
+				err := json.NewEncoder(&buf).Encode(tc.body)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			req := httptest.NewRequest("PUT", "/templates/"+tc.idParam, &buf)
+			req = injectUserID(req, tc.userID)
+			req = mux.SetURLVars(req, map[string]string{"id": tc.idParam})
+			rr := httptest.NewRecorder()
+
+			h.Put(rr, req)
+			res := rr.Result()
+			defer func() {
+				_ = res.Body.Close()
+			}()
+
+			assert.Equal(t, tc.wantStatus, res.StatusCode)
+			if tc.wantBody != nil {
+				var got models.Template
+				err := json.NewDecoder(res.Body).Decode(&got)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.wantBody, &got)
+			}
+		})
+	}
+}
+
+// --- DELETE /templates/{id} ---
+func TestTemplateHandler_Delete(t *testing.T) {
+	tests := []struct {
+		name       string
+		userID     int
+		idParam    string
+		setup      func(m *MockTemplateService)
+		wantStatus int
+	}{
+		{
+			name:       "bad id",
+			userID:     1,
+			idParam:    "x",
+			setup:      func(m *MockTemplateService) {},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "not found",
+			userID:  2,
+			idParam: "4",
+			setup: func(m *MockTemplateService) {
+				m.
+					On("DeleteTemplate", mock.Anything, 2, 4).
+					Return(domain.ErrTemplateNotExists).
+					Once()
+			},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:    "service error",
+			userID:  3,
+			idParam: "5",
+			setup: func(m *MockTemplateService) {
+				m.
+					On("DeleteTemplate", mock.Anything, 3, 5).
+					Return(assert.AnError).
+					Once()
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			name:    "success",
+			userID:  3,
+			idParam: "6",
+			setup: func(m *MockTemplateService) {
+				m.
+					On("DeleteTemplate", mock.Anything, 3, 6).
+					Return(nil).
+					Once()
+			},
+			wantStatus: http.StatusNoContent,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(MockTemplateService)
+			tc.setup(m)
+			h := handler.NewTemplateHandler(m, logger, timeout)
+
+			req := httptest.NewRequest("DELETE", "/templates/"+tc.idParam, nil)
+			req = injectUserID(req, tc.userID)
+			req = mux.SetURLVars(req, map[string]string{"id": tc.idParam})
+			rr := httptest.NewRecorder()
+
+			h.Delete(rr, req)
+			res := rr.Result()
+			defer func() {
+				_ = res.Body.Close()
+			}()
+
+			assert.Equal(t, tc.wantStatus, res.StatusCode)
+		})
 	}
 }

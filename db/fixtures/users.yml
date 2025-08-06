@@ -1,0 +1,11 @@
+user_1:
+  id: 1
+  email: alice@example.com
+  password_hash: $2a$10$N9qo8uLOickgx2ZMRZo5i.u1rWj/aeYy7CPQ7tJnVGyQOCaPA5K9e  # bcrypt("password123")
+  created_at: <now>
+
+user_2:
+  id: 2
+  email: bob@example.com
+  password_hash: $2a$10$7s3qZtqf1AvNMAfza3eUKuGzV6vzKPE1IuWQz5SLJYI2jFoJf8T42  # bcrypt("secret456")
+  created_at: <now>
