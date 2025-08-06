@@ -39,12 +39,11 @@ func TestIngestAndSave(t *testing.T) {
 			},
 			providerErr: nil,
 			setupMock: func(m *MockContactsRepository) {
-				// expect save of two contacts
-				// we’ll get two batches, one per worker that got a row
+				// here and further on we don't specify the expected number of calls because
+				// it might depend on the machine configuration and amount of logical cpus
 				m.
 					On("SaveContacts", mock.Anything, mock.Anything).
-					Return(nil).
-					Twice()
+					Return(nil)
 			},
 			wantTotal: 2,
 			wantErr:   false,
@@ -70,14 +69,13 @@ func TestIngestAndSave(t *testing.T) {
 			name:      "repository error on first batch",
 			batchSize: 1,
 			rows: [][]string{
-				{"Dave", "+79125551234"}, // batch size=1 → one batch
+				{"Dave", "+79125551234"},
 			},
 			providerErr: nil,
 			setupMock: func(m *MockContactsRepository) {
 				m.
 					On("SaveContacts", mock.Anything, mock.Anything).
-					Return(assert.AnError).
-					Once()
+					Return(assert.AnError)
 			},
 			wantTotal: 0, // nothing saved
 			wantErr:   true,
