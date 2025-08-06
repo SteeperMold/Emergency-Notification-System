@@ -20,59 +20,72 @@ func TestLoadContactsService_ProcessUpload(t *testing.T) {
 	bucket := "test-bucket"
 	filename := "contacts.csv"
 	userID := 123
+	s3Err := errors.New("s3 failure")
+	kafkaErr := errors.New("kafka failure")
 
 	tests := []struct {
 		name      string
-		mockSetup func(s3 *MockS3Client, kafka *MockKafkaWriter, capturedKey *string)
+		mockSetup func(ms3 *MockS3Client, mKafka *MockKafkaWriter, capturedKey *string)
 		wantErr   error
 	}{
 		{
 			name: "success",
 			mockSetup: func(s3c *MockS3Client, kw *MockKafkaWriter, capturedKey *string) {
-				s3c.On("PutObjectWithContext", mock.Anything, mock.MatchedBy(func(input *s3.PutObjectInput) bool {
-					key := aws.StringValue(input.Key)
-					// should have prefix "contacts/" and suffix filename
-					if !strings.HasPrefix(key, "contacts/") || !strings.HasSuffix(key, "_"+filename) {
-						return false
-					}
-					*capturedKey = key
-					// Body should be the payload reader - we can read first few bytes
-					buf := make([]byte, 5)
-					_, err := input.Body.Read(buf)
-					return err == nil
-				})).Return(&s3.PutObjectOutput{}, nil).Once()
-
-				kw.On("WriteMessages", mock.Anything, mock.MatchedBy(func(msgs []kafka.Message) bool {
-					if len(msgs) != 1 {
-						return false
-					}
-					// Unmarshal JSON
-					var task domain.LoadContactsTask
-					err := json.Unmarshal(msgs[0].Value, &task)
-					return err == nil && task.UserID == userID && task.S3Key == *capturedKey
-				})).Return(nil).Once()
+				s3c.
+					On("PutObjectWithContext", mock.Anything, mock.MatchedBy(func(input *s3.PutObjectInput) bool {
+						key := aws.StringValue(input.Key)
+						// should have prefix "contacts/" and suffix filename
+						if !strings.HasPrefix(key, "contacts/") || !strings.HasSuffix(key, "_"+filename) {
+							return false
+						}
+						*capturedKey = key
+						// Body should be the payload reader - we can read first few bytes
+						buf := make([]byte, 5)
+						_, err := input.Body.Read(buf)
+						return err == nil
+					})).
+					Return(&s3.PutObjectOutput{}, nil).
+					Once()
+				kw.
+					On("WriteMessages", mock.Anything, mock.MatchedBy(func(msgs []kafka.Message) bool {
+						if len(msgs) != 1 {
+							return false
+						}
+						// Unmarshal JSON
+						var task domain.LoadContactsTask
+						err := json.Unmarshal(msgs[0].Value, &task)
+						return err == nil && task.UserID == userID && task.S3Key == *capturedKey
+					})).
+					Return(nil).
+					Once()
 			},
 			wantErr: nil,
 		},
 		{
 			name: "s3 error",
 			mockSetup: func(s3c *MockS3Client, kw *MockKafkaWriter, _ *string) {
-				s3c.On("PutObjectWithContext", mock.Anything, mock.Anything).
-					Return(nil, errors.New("s3 failure")).Once()
+				s3c.
+					On("PutObjectWithContext", mock.Anything, mock.Anything).
+					Return((*s3.PutObjectOutput)(nil), s3Err).
+					Once()
 				// kafka writer should not be called
 			},
-			wantErr: errors.New("s3 failure"),
+			wantErr: s3Err,
 		},
 		{
 			name: "kafka error",
 			mockSetup: func(s3c *MockS3Client, kw *MockKafkaWriter, capturedKey *string) {
-				s3c.On("PutObjectWithContext", mock.Anything, mock.Anything).
-					Return(&s3.PutObjectOutput{}, nil).Once()
+				s3c.
+					On("PutObjectWithContext", mock.Anything, mock.Anything).
+					Return(&s3.PutObjectOutput{}, nil).
+					Once()
 				*capturedKey = "dummy"
-				kw.On("WriteMessages", mock.Anything, mock.Anything).
-					Return(errors.New("kafka failure")).Once()
+				kw.
+					On("WriteMessages", mock.Anything, mock.Anything).
+					Return(kafkaErr).
+					Once()
 			},
-			wantErr: errors.New("kafka failure"),
+			wantErr: kafkaErr,
 		},
 	}
 

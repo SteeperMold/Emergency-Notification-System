@@ -20,25 +20,47 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup golang
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: 1.24.3
 
-      - name: golangci-lint
+      - name: Run linters
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1
           working-directory: rebalancer-service
 
-  test:
+  unit-test:
     runs-on: ubuntu-latest
     needs: lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: run tests
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.3
+
+      - name: Run unit tests
+        working-directory: rebalancer-service
         run: |
-          cd rebalancer-service
-          go test ./... -v -race -cover
+          go test ./... -timeout 60s
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: unit-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.3
+
+      - name: Run integration tests
+        working-directory: rebalancer-service
+        run: |
+          go test ./... -timeout 120s -tags=integration

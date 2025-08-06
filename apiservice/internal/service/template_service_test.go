@@ -2,7 +2,7 @@ package service_test
 
 import (
 	"context"
-	"errors"
+	"strings"
 	"testing"
 
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
@@ -12,191 +12,199 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockTemplateRepo defines a mock implementation of domain.TemplateRepository
-// generated for use in unit tests.
-type MockTemplateRepo struct {
-	mock.Mock
-}
-
-func (m *MockTemplateRepo) GetTemplatesByUserID(ctx context.Context, userID int) ([]*models.Template, error) {
-	args := m.Called(ctx, userID)
-	if tmpls := args.Get(0); tmpls != nil {
-		return tmpls.([]*models.Template), args.Error(1)
+func TestTemplateService_GetTemplatesByUserID(t *testing.T) {
+	expected := []*models.Template{
+		{ID: 1, UserID: 42, Name: "T1", Body: "B1"},
 	}
-	return nil, args.Error(1)
+	m := new(MockTemplateRepository)
+	m.
+		On("GetTemplatesByUserID", mock.Anything, 42).
+		Return(expected, nil).
+		Once()
+
+	svc := service.NewTemplateService(m)
+	out, err := svc.GetTemplatesByUserID(context.Background(), 42)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, out)
+	m.AssertExpectations(t)
 }
 
-func (m *MockTemplateRepo) GetTemplateByID(ctx context.Context, userID, tmplID int) (*models.Template, error) {
-	args := m.Called(ctx, userID, tmplID)
-	if tmpl := args.Get(0); tmpl != nil {
-		return tmpl.(*models.Template), args.Error(1)
+func TestTemplateService_GetTemplateByID(t *testing.T) {
+	expected := &models.Template{ID: 2, UserID: 42, Name: "T2", Body: "B2"}
+	m := new(MockTemplateRepository)
+	m.
+		On("GetTemplateByID", mock.Anything, 42, 2).
+		Return(expected, nil).
+		Once()
+
+	svc := service.NewTemplateService(m)
+	out, err := svc.GetTemplateByID(context.Background(), 42, 2)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, out)
+	m.AssertExpectations(t)
+}
+
+func TestTemplateService_CreateTemplate(t *testing.T) {
+	type args struct {
+		tmpl *models.Template
 	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTemplateRepo) CreateTemplate(ctx context.Context, tmpl *models.Template) (*models.Template, error) {
-	args := m.Called(ctx, tmpl)
-	if t := args.Get(0); t != nil {
-		return t.(*models.Template), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTemplateRepo) UpdateTemplate(ctx context.Context, userID, tmplID int, tmpl *models.Template) (*models.Template, error) {
-	args := m.Called(ctx, userID, tmplID, tmpl)
-	if t := args.Get(0); t != nil {
-		return t.(*models.Template), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTemplateRepo) DeleteTemplate(ctx context.Context, userID, tmplID int) error {
-	return m.Called(ctx, userID, tmplID).Error(0)
-}
-
-func TestTemplateService(t *testing.T) {
-	tmplA := &models.Template{ID: 1, UserID: 10, Body: "A"}
-	tmplB := &models.Template{ID: 2, UserID: 10, Body: "B"}
-	errDB := errors.New("db error")
 
 	tests := []struct {
-		name       string
-		method     string // GetAll, GetByID, Create, Update, Delete
-		args       []interface{}
-		mockSetup  func(*MockTemplateRepo)
-		wantErr    error
-		wantResult interface{}
+		name      string
+		args      args
+		mockSetup func(m *MockTemplateRepository)
+		want      *models.Template
+		wantErr   error
 	}{
 		{
-			name:   "GetTemplatesByUserID success",
-			method: "GetTemplatesByUserID",
-			args:   []interface{}{context.Background(), 10},
-			mockSetup: func(m *MockTemplateRepo) {
-				m.On("GetTemplatesByUserID", mock.Anything, 10).
-					Return([]*models.Template{tmplA, tmplB}, nil).
+			name:    "empty name",
+			args:    args{tmpl: &models.Template{UserID: 1, Name: "", Body: "ok"}},
+			wantErr: domain.ErrInvalidTemplate,
+		},
+		{
+			name:    "name too long",
+			args:    args{tmpl: &models.Template{UserID: 1, Name: strings.Repeat("x", 33), Body: "ok"}},
+			wantErr: domain.ErrInvalidTemplate,
+		},
+		{
+			name:    "empty body",
+			args:    args{tmpl: &models.Template{UserID: 1, Name: "n", Body: ""}},
+			wantErr: domain.ErrInvalidTemplate,
+		},
+		{
+			name:    "body too long",
+			args:    args{tmpl: &models.Template{UserID: 1, Name: "n", Body: strings.Repeat("y", 257)}},
+			wantErr: domain.ErrInvalidTemplate,
+		},
+		{
+			name: "repo error",
+			args: args{tmpl: &models.Template{UserID: 1, Name: "n", Body: "b"}},
+			mockSetup: func(m *MockTemplateRepository) {
+				m.
+					On("CreateTemplate", mock.Anything, &models.Template{UserID: 1, Name: "n", Body: "b"}).
+					Return((*models.Template)(nil), assert.AnError).
 					Once()
 			},
-			wantErr:    nil,
-			wantResult: []*models.Template{tmplA, tmplB},
+			wantErr: assert.AnError,
 		},
 		{
-			name:   "GetTemplateByID not found error",
-			method: "GetTemplateByID",
-			args:   []interface{}{context.Background(), 10, 99},
-			mockSetup: func(m *MockTemplateRepo) {
-				m.On("GetTemplateByID", mock.Anything, 10, 99).
-					Return(nil, errDB).
+			name: "success",
+			args: args{tmpl: &models.Template{UserID: 1, Name: "n", Body: "b"}},
+			mockSetup: func(m *MockTemplateRepository) {
+				out := &models.Template{ID: 99, UserID: 1, Name: "n", Body: "b"}
+				m.
+					On("CreateTemplate", mock.Anything, &models.Template{UserID: 1, Name: "n", Body: "b"}).
+					Return(out, nil).
 					Once()
 			},
-			wantErr:    errDB,
-			wantResult: nil,
-		},
-		{
-			name:       "CreateTemplate invalid body",
-			method:     "CreateTemplate",
-			args:       []interface{}{context.Background(), &models.Template{UserID: 10, Body: ""}},
-			mockSetup:  func(m *MockTemplateRepo) {},
-			wantErr:    domain.ErrInvalidTemplate,
-			wantResult: nil,
-		},
-		{
-			name:   "CreateTemplate success",
-			method: "CreateTemplate",
-			args:   []interface{}{context.Background(), &models.Template{UserID: 10, Body: "New", Name: "New"}},
-			mockSetup: func(m *MockTemplateRepo) {
-				m.On("CreateTemplate", mock.Anything, mock.MatchedBy(func(x *models.Template) bool {
-					return x.UserID == 10 && x.Body == "New" && x.Name == "New"
-				})).
-					Return(&models.Template{ID: 3, UserID: 10, Body: "New"}, nil).
-					Once()
-			},
-			wantErr:    nil,
-			wantResult: &models.Template{ID: 3, UserID: 10, Body: "New"},
-		},
-		{
-			name:       "UpdateTemplate invalid body",
-			method:     "UpdateTemplate",
-			args:       []interface{}{context.Background(), 10, 1, &models.Template{Body: ""}},
-			mockSetup:  func(m *MockTemplateRepo) {},
-			wantErr:    domain.ErrInvalidTemplate,
-			wantResult: nil,
-		},
-		{
-			name:   "UpdateTemplate success",
-			method: "UpdateTemplate",
-			args:   []interface{}{context.Background(), 10, 1, &models.Template{Body: "Upd", Name: "Upd"}},
-			mockSetup: func(m *MockTemplateRepo) {
-				m.On("UpdateTemplate", mock.Anything, 10, 1, mock.MatchedBy(func(x *models.Template) bool {
-					return x.Body == "Upd" && x.Name == "Upd"
-				})).
-					Return(&models.Template{ID: 1, UserID: 10, Body: "Upd"}, nil).
-					Once()
-			},
-			wantErr:    nil,
-			wantResult: &models.Template{ID: 1, UserID: 10, Body: "Upd"},
-		},
-		{
-			name:   "DeleteTemplate success",
-			method: "DeleteTemplate",
-			args:   []interface{}{context.Background(), 10, 1},
-			mockSetup: func(m *MockTemplateRepo) {
-				m.On("DeleteTemplate", mock.Anything, 10, 1).
-					Return(nil).
-					Once()
-			},
-			wantErr:    nil,
-			wantResult: nil,
-		},
-		{
-			name:   "DeleteTemplate error",
-			method: "DeleteTemplate",
-			args:   []interface{}{context.Background(), 10, 2},
-			mockSetup: func(m *MockTemplateRepo) {
-				m.On("DeleteTemplate", mock.Anything, 10, 2).
-					Return(errDB).
-					Once()
-			},
-			wantErr:    errDB,
-			wantResult: nil,
+			want: &models.Template{ID: 99, UserID: 1, Name: "n", Body: "b"},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockRepo := new(MockTemplateRepo)
-			svc := service.NewTemplateService(mockRepo)
-			// setup expectations
-			tc.mockSetup(mockRepo)
-
-			var (
-				res interface{}
-				err error
-			)
-
-			switch tc.method {
-			case "GetTemplatesByUserID":
-				res, err = svc.GetTemplatesByUserID(tc.args[0].(context.Context), tc.args[1].(int))
-			case "GetTemplateByID":
-				res, err = svc.GetTemplateByID(tc.args[0].(context.Context), tc.args[1].(int), tc.args[2].(int))
-			case "CreateTemplate":
-				res, err = svc.CreateTemplate(tc.args[0].(context.Context), tc.args[1].(*models.Template))
-			case "UpdateTemplate":
-				res, err = svc.UpdateTemplate(tc.args[0].(context.Context), tc.args[1].(int), tc.args[2].(int), tc.args[3].(*models.Template))
-			case "DeleteTemplate":
-				err = svc.DeleteTemplate(tc.args[0].(context.Context), tc.args[1].(int), tc.args[2].(int))
+			m := new(MockTemplateRepository)
+			if tc.mockSetup != nil {
+				tc.mockSetup(m)
 			}
+			svc := service.NewTemplateService(m)
 
+			out, err := svc.CreateTemplate(context.Background(), tc.args.tmpl)
 			if tc.wantErr != nil {
 				assert.ErrorIs(t, err, tc.wantErr)
+				assert.Nil(t, out)
 			} else {
 				assert.NoError(t, err)
+				assert.Equal(t, tc.want, out)
 			}
-
-			if tc.wantResult != nil {
-				assert.Equal(t, tc.wantResult, res)
-			}
-
-			mockRepo.AssertExpectations(t)
+			m.AssertExpectations(t)
 		})
 	}
+}
+
+func TestTemplateService_UpdateTemplate(t *testing.T) {
+	type args struct {
+		userID int
+		tmplID int
+		update *models.Template
+	}
+
+	tests := []struct {
+		name      string
+		args      args
+		mockSetup func(m *MockTemplateRepository)
+		want      *models.Template
+		wantErr   error
+	}{
+		{
+			name:    "invalid name",
+			args:    args{userID: 1, tmplID: 2, update: &models.Template{UserID: 1, Name: "", Body: "b"}},
+			wantErr: domain.ErrInvalidTemplate,
+		},
+		{
+			name:    "invalid body",
+			args:    args{userID: 1, tmplID: 2, update: &models.Template{UserID: 1, Name: "n", Body: ""}},
+			wantErr: domain.ErrInvalidTemplate,
+		},
+		{
+			name: "repo error",
+			args: args{userID: 1, tmplID: 2, update: &models.Template{UserID: 1, Name: "n", Body: "b"}},
+			mockSetup: func(m *MockTemplateRepository) {
+				m.
+					On("UpdateTemplate", mock.Anything, 1, 2, &models.Template{UserID: 1, Name: "n", Body: "b"}).
+					Return((*models.Template)(nil), assert.AnError).
+					Once()
+			},
+			wantErr: assert.AnError,
+		},
+		{
+			name: "success",
+			args: args{userID: 1, tmplID: 2, update: &models.Template{UserID: 1, Name: "n", Body: "b"}},
+			mockSetup: func(m *MockTemplateRepository) {
+				out := &models.Template{ID: 2, UserID: 1, Name: "n", Body: "b"}
+				m.
+					On("UpdateTemplate", mock.Anything, 1, 2, &models.Template{UserID: 1, Name: "n", Body: "b"}).
+					Return(out, nil).
+					Once()
+			},
+			want: &models.Template{ID: 2, UserID: 1, Name: "n", Body: "b"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(MockTemplateRepository)
+			if tc.mockSetup != nil {
+				tc.mockSetup(m)
+			}
+			svc := service.NewTemplateService(m)
+
+			out, err := svc.UpdateTemplate(context.Background(), tc.args.userID, tc.args.tmplID, tc.args.update)
+			if tc.wantErr != nil {
+				assert.ErrorIs(t, err, tc.wantErr)
+				assert.Nil(t, out)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.want, out)
+			}
+
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestTemplateService_DeleteTemplate(t *testing.T) {
+	m := new(MockTemplateRepository)
+	m.
+		On("DeleteTemplate", mock.Anything, 1, 2).
+		Return(nil).
+		Once()
+
+	svc := service.NewTemplateService(m)
+	err := svc.DeleteTemplate(context.Background(), 1, 2)
+
+	assert.NoError(t, err)
+	m.AssertExpectations(t)
 }

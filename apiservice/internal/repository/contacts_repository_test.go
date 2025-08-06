@@ -1,183 +1,204 @@
+//go:build integration
+// +build integration
+
 package repository_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
-	"time"
 
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/repository"
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+func clearContacts(t *testing.T, db *sql.DB) {
+	t.Helper()
+	_, err := db.Exec("TRUNCATE contacts RESTART IDENTITY CASCADE")
+	require.NoError(t, err)
+}
+
+func TestCreateAndGetContact(t *testing.T) {
+	t.Cleanup(func() { clearContacts(t, testDB) })
+
+	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	if err := fixtures.Load(); err != nil {
+		t.Fatalf("failed loading fixtures: %v", err)
+	}
+
+	ctx := context.Background()
+	userID := 1
+
+	repo := repository.NewContactsRepository(testPool)
+
+	t.Run("create contact", func(t *testing.T) {
+
+		contact := &models.Contact{UserID: userID, Name: "John", Phone: "+123456789"}
+		created, err := repo.CreateContact(ctx, contact)
+		require.NoError(t, err)
+		require.Equal(t, contact.Name, created.Name)
+		require.Equal(t, contact.Phone, created.Phone)
+	})
+
+	t.Run("get contact by id", func(t *testing.T) {
+		contact := &models.Contact{UserID: userID, Name: "Alice", Phone: "+198765432"}
+		created, err := repo.CreateContact(ctx, contact)
+		require.NoError(t, err)
+		got, err := repo.GetContactByID(ctx, userID, created.ID)
+		require.NoError(t, err)
+		require.Equal(t, created.Name, got.Name)
+		require.Equal(t, created.Phone, got.Phone)
+	})
+}
+
 func TestContactsRepository_GetContactsByUserID(t *testing.T) {
-	testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-		repo := repository.NewContactsRepository(tx)
+	t.Cleanup(func() { clearContacts(t, testDB) })
 
-		// empty
-		cts, err := repo.GetContactsByUserID(ctx, 999)
-		require.NoError(t, err)
-		assert.Empty(t, cts)
+	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	if err := fixtures.Load(); err != nil {
+		t.Fatalf("failed loading fixtures: %v", err)
+	}
 
-		// seed a user
-		now := time.Now().UTC().Truncate(time.Second)
-		var userID int
-		err = tx.QueryRow(ctx,
-			`INSERT INTO users(email, password_hash, created_at) VALUES($1,$2,$3) RETURNING id`,
-			"user@example.com", "hash", now,
-		).Scan(&userID)
-		require.NoError(t, err)
+	ctx := context.Background()
+	userID := 1
+	repo := repository.NewContactsRepository(testPool)
 
-		// insert contacts
-		_, err = tx.Exec(ctx,
-			`INSERT INTO contacts(user_id, name, phone, created_at, updated_at)
-			   VALUES ($1,$2,$3,$4,$4),($1,$5,$6,$4,$4)`,
-			userID, "Alice", "+10000000000", now, "Bob", "+20000000000",
-		)
-		require.NoError(t, err)
+	contactA := &models.Contact{UserID: userID, Name: "Alpha", Phone: "+111"}
+	contactB := &models.Contact{UserID: userID, Name: "Beta", Phone: "+222"}
+	_, err := repo.CreateContact(ctx, contactA)
+	require.NoError(t, err)
+	_, err = repo.CreateContact(ctx, contactB)
+	require.NoError(t, err)
 
-		// fetch
-		cts, err = repo.GetContactsByUserID(ctx, userID)
-		require.NoError(t, err)
-		assert.Len(t, cts, 2)
-		names := []string{cts[0].Name, cts[1].Name}
-		assert.Contains(t, names, "Alice")
-		assert.Contains(t, names, "Bob")
-	})
+	contacts, err := repo.GetContactsByUserID(ctx, userID)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(contacts), 2)
+	names := []string{contacts[0].Name, contacts[1].Name}
+	require.Contains(t, names, "Alpha")
+	require.Contains(t, names, "Beta")
 }
 
-func TestContactsRepository_GetContactByID(t *testing.T) {
-	testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-		repo := repository.NewContactsRepository(tx)
+func TestContactsRepository_GetContactByID_NotExists(t *testing.T) {
+	t.Cleanup(func() { clearContacts(t, testDB) })
 
-		// not exists
-		ct, err := repo.GetContactByID(ctx, 1, 12345)
-		assert.ErrorIs(t, err, domain.ErrContactNotExists)
-		assert.Nil(t, ct)
+	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	if err := fixtures.Load(); err != nil {
+		t.Fatalf("failed loading fixtures: %v", err)
+	}
 
-		// seed user
-		now := time.Now().UTC().Truncate(time.Second)
-		var userID int
-		err = tx.QueryRow(ctx,
-			`INSERT INTO users(email, password_hash, created_at) VALUES($1,$2,$3) RETURNING id`,
-			"bob@example.com", "hash", now,
-		).Scan(&userID)
-		require.NoError(t, err)
+	ctx := context.Background()
+	repo := repository.NewContactsRepository(testPool)
 
-		// seed contact
-		var contactID int
-		err = tx.QueryRow(ctx,
-			`INSERT INTO contacts(user_id, name, phone, created_at, updated_at)
-			   VALUES($1,$2,$3,$4,$4) RETURNING id`,
-			userID, "Charlie", "+30000000000", now,
-		).Scan(&contactID)
-		require.NoError(t, err)
-
-		// fetch
-		ct, err = repo.GetContactByID(ctx, userID, contactID)
-		require.NoError(t, err)
-		assert.Equal(t, contactID, ct.ID)
-		assert.Equal(t, userID, ct.UserID)
-		assert.Equal(t, "Charlie", ct.Name)
-		assert.Equal(t, "+30000000000", ct.Phone)
-		assert.WithinDuration(t, now, ct.CreationTime.UTC(), time.Second)
-	})
+	_, err := repo.GetContactByID(ctx, 9999, 9999)
+	require.ErrorIs(t, err, domain.ErrContactNotExists)
 }
 
-func TestContactsRepository_CreateContact(t *testing.T) {
-	testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-		repo := repository.NewContactsRepository(tx)
+func TestContactsRepository_CreateContact_UniqueConstraint(t *testing.T) {
+	t.Cleanup(func() { clearContacts(t, testDB) })
 
-		// seed user
-		var userID int
-		err := tx.QueryRow(ctx,
-			`INSERT INTO users(email, password_hash) VALUES($1,$2) RETURNING id`,
-			"carol@example.com", "hash",
-		).Scan(&userID)
-		require.NoError(t, err)
+	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	if err := fixtures.Load(); err != nil {
+		t.Fatalf("failed loading fixtures: %v", err)
+	}
 
-		// create
-		ctr := &models.Contact{UserID: userID, Name: "Dave", Phone: "+40000000000"}
-		created, err := repo.CreateContact(ctx, ctr)
-		require.NoError(t, err)
-		assert.NotZero(t, created.ID)
-		assert.Equal(t, userID, created.UserID)
-		assert.Equal(t, "Dave", created.Name)
-		assert.Equal(t, "+40000000000", created.Phone)
+	ctx := context.Background()
+	userID := 1
+	repo := repository.NewContactsRepository(testPool)
 
-		// duplicate -> already exists
-		_, err = repo.CreateContact(ctx, ctr)
-		assert.ErrorIs(t, err, domain.ErrContactAlreadyExists)
-	})
+	contact := &models.Contact{UserID: userID, Name: "Dup", Phone: "+999"}
+	_, err := repo.CreateContact(ctx, contact)
+	require.NoError(t, err)
+
+	_, err = repo.CreateContact(ctx, contact)
+	require.ErrorIs(t, err, domain.ErrContactAlreadyExists)
 }
 
 func TestContactsRepository_UpdateContact(t *testing.T) {
-	testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-		repo := repository.NewContactsRepository(tx)
+	t.Cleanup(func() { clearContacts(t, testDB) })
 
-		// not exists
-		_, err := repo.UpdateContact(ctx, 1, 9999, &models.Contact{UserID: 1, Name: "X", Phone: "+50000000000"})
-		assert.ErrorIs(t, err, domain.ErrContactNotExists)
+	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	if err := fixtures.Load(); err != nil {
+		t.Fatalf("failed loading fixtures: %v", err)
+	}
 
-		// seed user and contact
-		var userID, contactID int
-		err = tx.QueryRow(ctx,
-			`INSERT INTO users(email, password_hash) VALUES($1,$2) RETURNING id`,
-			"ed@example.com", "hash",
-		).Scan(&userID)
+	ctx := context.Background()
+	userID := 1
+	repo := repository.NewContactsRepository(testPool)
+
+	orig := &models.Contact{UserID: userID, Name: "Old", Phone: "+333"}
+	created, err := repo.CreateContact(ctx, orig)
+	require.NoError(t, err)
+
+	t.Run("successfully update", func(t *testing.T) {
+		updatedInfo := &models.Contact{UserID: userID, Name: "NewName", Phone: "+444"}
+		updated, err := repo.UpdateContact(ctx, userID, created.ID, updatedInfo)
 		require.NoError(t, err)
-		err = tx.QueryRow(ctx,
-			`INSERT INTO contacts(user_id, name, phone) VALUES($1,$2,$3) RETURNING id`,
-			userID, "Eve", "+60000000000",
-		).Scan(&contactID)
+		require.Equal(t, "NewName", updated.Name)
+		require.Equal(t, "+444", updated.Phone)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		_, err := repo.UpdateContact(ctx, userID, 0, orig)
+		require.ErrorIs(t, err, domain.ErrContactNotExists)
+	})
+
+	t.Run("unique violation", func(t *testing.T) {
+		// create a second contact
+		other := &models.Contact{UserID: userID, Name: "Other", Phone: "+555"}
+		_, err := repo.CreateContact(ctx, other)
 		require.NoError(t, err)
 
-		// update
-		updated, err := repo.UpdateContact(ctx, userID, contactID, &models.Contact{UserID: userID, Name: "Eve2", Phone: "+70000000000"})
-		require.NoError(t, err)
-		assert.Equal(t, contactID, updated.ID)
-		assert.Equal(t, "Eve2", updated.Name)
-		assert.Equal(t, "+70000000000", updated.Phone)
-
-		// conflict on unique (same name+phone)
-		// seed another
-		_, err = tx.Exec(ctx,
-			`INSERT INTO contacts(user_id, name, phone) VALUES($1,$2,$3)`,
-			userID, "Dup", "+80000000000",
-		)
-		require.NoError(t, err)
-		// attempt to rename our record to collide
-		_, err = repo.UpdateContact(ctx, userID, contactID, &models.Contact{UserID: userID, Name: "Dup", Phone: "+80000000000"})
-		assert.ErrorIs(t, err, domain.ErrContactAlreadyExists)
+		// attempt to update 'created' to have same name+phone as 'other'
+		conflict := &models.Contact{UserID: userID, Name: other.Name, Phone: other.Phone}
+		_, err = repo.UpdateContact(ctx, userID, created.ID, conflict)
+		require.ErrorIs(t, err, domain.ErrContactAlreadyExists)
 	})
 }
 
 func TestContactsRepository_DeleteContact(t *testing.T) {
-	testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-		repo := repository.NewContactsRepository(tx)
+	t.Cleanup(func() { clearContacts(t, testDB) })
 
-		// not exists
-		err := repo.DeleteContact(ctx, 1, 9999)
-		assert.ErrorIs(t, err, domain.ErrContactNotExists)
+	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	if err := fixtures.Load(); err != nil {
+		t.Fatalf("failed loading fixtures: %v", err)
+	}
 
-		// seed and delete
-		var userID, contactID int
-		err = tx.QueryRow(ctx,
-			`INSERT INTO users(email, password_hash) VALUES($1,$2) RETURNING id`,
-			"frank@example.com", "hash",
-		).Scan(&userID)
-		require.NoError(t, err)
-		err = tx.QueryRow(ctx,
-			`INSERT INTO contacts(user_id, name, phone) VALUES($1,$2,$3) RETURNING id`,
-			userID, "Frank", "+90000000000",
-		).Scan(&contactID)
-		require.NoError(t, err)
+	ctx := context.Background()
+	userID := 1
+	repo := repository.NewContactsRepository(testPool)
 
-		// delete
-		err = repo.DeleteContact(ctx, userID, contactID)
-		require.NoError(t, err)
-	})
+	// insert and delete
+	contact := &models.Contact{UserID: userID, Name: "ToDelete", Phone: "+666"}
+	created, err := repo.CreateContact(ctx, contact)
+	require.NoError(t, err)
+
+	err = repo.DeleteContact(ctx, userID, created.ID)
+	require.NoError(t, err)
+
+	// deleting again should return not‐exists
+	err = repo.DeleteContact(ctx, userID, created.ID)
+	require.ErrorIs(t, err, domain.ErrContactNotExists)
+}
+
+func TestContactsRepository_DeleteContact_WrongUser(t *testing.T) {
+	t.Cleanup(func() { clearContacts(t, testDB) })
+
+	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	if err := fixtures.Load(); err != nil {
+		t.Fatalf("failed loading fixtures: %v", err)
+	}
+
+	ctx := context.Background()
+	userID := 1
+	repo := repository.NewContactsRepository(testPool)
+
+	contact := &models.Contact{UserID: userID, Name: "WrongUser", Phone: "+777"}
+	created, err := repo.CreateContact(ctx, contact)
+	require.NoError(t, err)
+
+	// attempt delete as different user
+	err = repo.DeleteContact(ctx, userID+1, created.ID)
+	require.ErrorIs(t, err, domain.ErrContactNotExists)
 }

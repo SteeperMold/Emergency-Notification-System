@@ -2,105 +2,106 @@ package handler_test
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/route"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/handler"
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/contextkeys"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
-func setupProfileServerWithMockMiddleware(tx domain.DBConn, userID any) *mux.Router {
-	logger := zap.NewNop()
-	timeout := 2 * time.Second
-
-	r := mux.NewRouter()
-
-	r.Use(mockUserMiddleware(userID))
-
-	route.NewProfileRoute(r, tx, logger, timeout)
-
-	return r
-}
-
 func TestProfileHandler_GetProfile(t *testing.T) {
-	type testCase struct {
-		name          string
-		setup         func(ctx context.Context, tx domain.DBConn) any
-		userID        any
-		expectedCode  int
-		expectProfile bool
-	}
-
-	tests := []testCase{
+	tests := []struct {
+		name           string
+		setupContext   func(*http.Request)
+		setupMock      func(m *MockProfileService)
+		wantStatusCode int
+		wantBody       string
+	}{
 		{
-			name: "Success",
-			setup: func(ctx context.Context, tx domain.DBConn) any {
-				var id int
-				err := tx.QueryRow(ctx,
-					`INSERT INTO users(email, password_hash) VALUES($1, $2) RETURNING id`,
-					"bob@example.com", "hashedpass",
-				).Scan(&id)
-				require.NoError(t, err)
-				return id
+			name:           "user ID missing from context",
+			setupContext:   func(r *http.Request) {},
+			wantStatusCode: http.StatusInternalServerError,
+			wantBody:       "internal server error\n",
+		},
+		{
+			name: "user not found",
+			setupContext: func(r *http.Request) {
+				ctx := context.WithValue(r.Context(), contextkeys.UserID, 101)
+				*r = *r.WithContext(ctx)
 			},
-			expectedCode:  http.StatusOK,
-			expectProfile: true,
+			setupMock: func(m *MockProfileService) {
+				m.On("GetUserByID", mock.Anything, 101).
+					Return((*models.User)(nil), domain.ErrUserNotExists).
+					Once()
+			},
+			wantStatusCode: http.StatusNotFound,
+			wantBody:       "user not exists\n",
 		},
 		{
-			name:         "UserIdNotInt",
-			userID:       "not-an-int",
-			expectedCode: http.StatusInternalServerError,
+			name: "internal error from service",
+			setupContext: func(r *http.Request) {
+				ctx := context.WithValue(r.Context(), contextkeys.UserID, 102)
+				*r = *r.WithContext(ctx)
+			},
+			setupMock: func(m *MockProfileService) {
+				m.On("GetUserByID", mock.Anything, 102).
+					Return((*models.User)(nil), assert.AnError).
+					Once()
+			},
+			wantStatusCode: http.StatusInternalServerError,
+			wantBody:       "internal server error\n",
 		},
 		{
-			name:         "UserNotFound",
-			userID:       999999,
-			expectedCode: http.StatusNotFound,
+			name: "successful profile fetch",
+			setupContext: func(r *http.Request) {
+				ctx := context.WithValue(r.Context(), contextkeys.UserID, 103)
+				*r = *r.WithContext(ctx)
+			},
+			setupMock: func(m *MockProfileService) {
+				m.On("GetUserByID", mock.Anything, 103).
+					Return(&models.User{ID: 103, Email: "jane@example.com"}, nil).
+					Once()
+			},
+			wantStatusCode: http.StatusOK,
+			wantBody:       `{"id":103,"email":"jane@example.com","creationTime":"0001-01-01T00:00:00Z"}`,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-				userID := tc.userID
-				if tc.setup != nil {
-					userID = tc.setup(ctx, tx)
-				}
+			mockSvc := new(MockProfileService)
 
-				router := setupProfileServerWithMockMiddleware(tx, userID)
-				srv := httptest.NewServer(router)
-				defer srv.Close()
+			if tc.setupMock != nil {
+				tc.setupMock(mockSvc)
+			}
 
-				req, err := http.NewRequest(http.MethodGet, srv.URL+"/profile", nil)
-				require.NoError(t, err)
+			h := handler.NewProfileHandler(mockSvc, zap.NewNop(), 100*time.Millisecond)
 
-				resp, err := http.DefaultClient.Do(req)
-				require.NoError(t, err)
-				defer func(Body io.ReadCloser) {
-					err := Body.Close()
-					if err != nil {
-						panic(err)
-					}
-				}(resp.Body)
+			req := httptest.NewRequest(http.MethodGet, "/profile", nil)
+			if tc.setupContext != nil {
+				tc.setupContext(req)
+			}
 
-				require.Equal(t, tc.expectedCode, resp.StatusCode)
+			rec := httptest.NewRecorder()
+			h.GetProfile(rec, req)
 
-				if tc.expectProfile {
-					var profile models.User
-					err := json.NewDecoder(resp.Body).Decode(&profile)
-					require.NoError(t, err)
-					assert.Equal(t, userID, profile.ID)
-				}
-			})
+			require.Equal(t, tc.wantStatusCode, rec.Code)
+
+			if tc.wantStatusCode == http.StatusOK {
+				require.JSONEq(t, tc.wantBody, rec.Body.String())
+			} else {
+				require.Equal(t, tc.wantBody, rec.Body.String())
+			}
+
+			mockSvc.AssertExpectations(t)
 		})
 	}
 }

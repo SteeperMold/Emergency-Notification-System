@@ -31,22 +31,36 @@ jobs:
           version: v2.1
           working-directory: apiservice
 
-  test:
+  unit-test:
     runs-on: ubuntu-latest
     needs: lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: run tests with docker compose
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.3
+
+      - name: Run unit tests
+        working-directory: apiservice
         run: |
-          cd apiservice
-          docker compose -f docker-compose.test.yaml up \
-            --build \
-            --abort-on-container-exit test \
-            --exit-code-from test
-          DOWN_EXIT=$?
-          docker compose -f docker-compose.test.yaml down --volumes
-          exit $DOWN_EXIT
-        env:
-          DOCKER_BUILDKIT: 1
+          go test ./... -timeout 60s
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: unit-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.3
+
+      - name: Run integration tests
+        working-directory: apiservice
+        run: |
+          go test ./... -timeout 120s -tags=integration

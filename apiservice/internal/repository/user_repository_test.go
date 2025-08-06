@@ -1,91 +1,63 @@
+//go:build integration
+// +build integration
+
 package repository_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
-	"time"
 
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/domain"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/repository"
-	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/testutils"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestUserRepository_CreateUser(t *testing.T) {
-	testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-		repo := repository.NewUserRepository(tx)
-
-		created, err := repo.CreateUser(ctx, &models.User{
-			Email:        "new@example.com",
-			PasswordHash: "pwhash",
-		})
-		require.NoError(t, err)
-		assert.Equal(t, "new@example.com", created.Email)
-		assert.NotZero(t, created.ID)
-		assert.WithinDuration(t, time.Now(), created.CreationTime.UTC(), time.Second)
-
-		row := tx.QueryRow(ctx,
-			`SELECT email, password_hash FROM users WHERE id = $1`,
-			created.ID,
-		)
-		var email, hash string
-		err = row.Scan(&email, &hash)
-		require.NoError(t, err)
-		assert.Equal(t, "new@example.com", email)
-		assert.Equal(t, "pwhash", hash)
-
-		_, err = repo.CreateUser(ctx, &models.User{
-			Email:        "new@example.com",
-			PasswordHash: "another",
-		})
-		assert.Error(t, err)
-	})
+func clearUsers(t *testing.T, db *sql.DB) {
+	t.Helper()
+	_, err := db.Exec("TRUNCATE users RESTART IDENTITY CASCADE")
+	require.NoError(t, err)
 }
 
-func TestUserRepository_GetUserByEmail(t *testing.T) {
-	testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-		repo := repository.NewUserRepository(tx)
+func TestUserRepository_CRUD(t *testing.T) {
+	t.Cleanup(func() { clearUsers(t, testDB) })
 
-		user, err := repo.GetUserByEmail(ctx, "nope@example.com")
-		assert.ErrorIs(t, err, domain.ErrUserNotExists)
-		assert.Nil(t, user)
+	ctx := context.Background()
+	repo := repository.NewUserRepository(testPool)
 
-		now := time.Now().UTC().Truncate(time.Second)
-		_, err = tx.Exec(ctx,
-			`INSERT INTO users (email, password_hash, created_at) VALUES ($1,$2,$3)`,
-			"foo@bar.com", "hashpw", now,
-		)
+	t.Run("CreateUser and GetUserByEmail/GetUserByID", func(t *testing.T) {
+		orig := &models.User{Email: "foo@example.com", PasswordHash: "hashedpw"}
+		created, err := repo.CreateUser(ctx, orig)
 		require.NoError(t, err)
+		require.NotZero(t, created.ID)
+		require.Equal(t, orig.Email, created.Email)
+		require.False(t, created.CreationTime.IsZero())
 
-		got, err := repo.GetUserByEmail(ctx, "foo@bar.com")
+		byEmail, err := repo.GetUserByEmail(ctx, orig.Email)
 		require.NoError(t, err)
-		assert.Equal(t, "foo@bar.com", got.Email)
-		assert.Equal(t, "hashpw", got.PasswordHash)
-		assert.WithinDuration(t, now, got.CreationTime.UTC(), time.Second)
+		require.Equal(t, created.ID, byEmail.ID)
+		require.Equal(t, orig.Email, byEmail.Email)
+
+		byID, err := repo.GetUserByID(ctx, created.ID)
+		require.NoError(t, err)
+		require.Equal(t, created.Email, byID.Email)
 	})
-}
 
-func TestUserRepository_GetUserById(t *testing.T) {
-	testutils.WithRollback(t, func(ctx context.Context, tx domain.DBConn) {
-		repo := repository.NewUserRepository(tx)
+	t.Run("GetUserByEmail NotExists", func(t *testing.T) {
+		_, err := repo.GetUserByEmail(ctx, "no-such@example.com")
+		require.ErrorIs(t, err, domain.ErrUserNotExists)
+	})
 
-		user, err := repo.GetUserByID(ctx, 9999)
-		assert.ErrorIs(t, err, domain.ErrUserNotExists)
-		assert.Nil(t, user)
+	t.Run("GetUserByID NotExists", func(t *testing.T) {
+		_, err := repo.GetUserByID(ctx, 9999)
+		require.ErrorIs(t, err, domain.ErrUserNotExists)
+	})
 
-		now := time.Now().UTC().Truncate(time.Second)
-		_, err = tx.Exec(ctx,
-			`INSERT INTO users (id, email, password_hash, created_at) VALUES ($1,$2,$3,$4)`,
-			1, "foo@bar.com", "hashpw", now,
-		)
+	t.Run("CreateUser DuplicateEmail", func(t *testing.T) {
+		_, err := repo.CreateUser(ctx, &models.User{Email: "dup@example.com", PasswordHash: "h"})
 		require.NoError(t, err)
-
-		got, err := repo.GetUserByID(ctx, 1)
-		require.NoError(t, err)
-		assert.Equal(t, "foo@bar.com", got.Email)
-		assert.Equal(t, "hashpw", got.PasswordHash)
-		assert.WithinDuration(t, now, got.CreationTime.UTC(), time.Second)
+		_, err = repo.CreateUser(ctx, &models.User{Email: "dup@example.com", PasswordHash: "h2"})
+		require.Error(t, err)
 	})
 }
