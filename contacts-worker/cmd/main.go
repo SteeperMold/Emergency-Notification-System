@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/adapter/consumers"
+	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/api/route"
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/bootstrap"
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/repository"
 	"github.com/SteeperMold/Emergency-Notification-System/contacts-worker/internal/service"
@@ -34,7 +35,12 @@ func main() {
 		cancel()
 	}()
 
+	go func() {
+		log.Fatal(cc.StartConsumer(ctx))
+	}()
+
+	log.Printf("listening on port %v\n", app.Config.App.Port)
 	log.Println("contacts worker started")
 
-	log.Fatal(cc.StartConsumer(ctx))
+	route.Serve(app)
 }

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/api/route"
 	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/bootstrap"
 	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/repository"
 	"github.com/SteeperMold/Emergency-Notification-System/rebalancer-service/internal/service"
@@ -33,5 +34,11 @@ func main() {
 		cancel()
 	}()
 
-	ns.Start(ctx)
+	go func() {
+		ns.Start(ctx)
+	}()
+
+	log.Printf("listening on port %v", app.Config.App.Port)
+
+	route.Serve(app)
 }

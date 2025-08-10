@@ -1,6 +1,6 @@
-.PHONY: up-all down-all flush-all
+.PHONY: run-dev down flush
 
-up-all:
+run-dev:
 	docker compose up \
 		--build \
 		--abort-on-container-exit apiservice contacts-worker notification-service rebalancer-service sender-service react-app \
@@ -9,8 +9,8 @@ up-all:
 	docker compose down; \
 	exit $$DOWN_EXIT
 
-down-all:
+down:
 	docker compose down
 
-flush-all:
+flush:
 	docker compose down --volumes --remove-orphans

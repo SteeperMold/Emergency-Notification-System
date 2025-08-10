@@ -7,6 +7,7 @@ import (
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/api/middleware"
 	"github.com/SteeperMold/Emergency-Notification-System/notification-service/internal/bootstrap"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/twilio/twilio-go/client"
 )
 
@@ -15,6 +16,8 @@ import (
 // registers the callback route, and listens on the configured port.
 func Serve(app *bootstrap.Application) {
 	r := mux.NewRouter()
+
+	r.Handle("/metrics", promhttp.Handler())
 
 	if app.Config.App.AppEnv == "production" {
 		validator := client.NewRequestValidator(app.Config.Twilio.AuthToken)

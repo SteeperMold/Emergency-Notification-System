@@ -6,6 +6,9 @@ services:
     deploy:
       mode: replicated
       replicas: 3
+    labels:
+      prometheus.scrape: "true"
+      prometheus.port: "8080"
     depends_on:
       kafka:
         condition: service_started

@@ -24,6 +24,9 @@ services:
       - .env
     ports:
       - "${PORT}:${PORT}"
+    labels:
+      prometheus.scrape: "true"
+      prometheus.port: "8080"
     depends_on:
       postgres:
         condition: service_healthy

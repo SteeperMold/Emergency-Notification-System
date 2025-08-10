@@ -8,6 +8,9 @@ services:
       replicas: 2
     env_file:
       - .env
+    labels:
+      prometheus.scrape: "true"
+      prometheus.port: "8080"
     depends_on:
       kafka:
         condition: service_started

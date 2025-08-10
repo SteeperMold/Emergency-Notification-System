@@ -7,6 +7,7 @@ import (
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/api/middleware"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/bootstrap"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Serve configures and starts the HTTP server with routing and middleware.
@@ -18,6 +19,8 @@ func Serve(app *bootstrap.Application) {
 	r := mux.NewRouter()
 	r.Use(middleware.CorsMiddleware(app.Config.App.FrontendOrigin))
 	r.Use(middleware.LoggingMiddleware(logger))
+
+	r.Handle("/metrics", promhttp.Handler())
 
 	NewSignupRouter(r, db, logger, timeout, app.Config.App.Jwt)
 	NewLoginRoute(r, db, logger, timeout, app.Config.App.Jwt)
