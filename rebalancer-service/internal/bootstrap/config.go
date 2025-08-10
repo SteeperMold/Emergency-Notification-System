@@ -20,6 +20,7 @@ type Config struct {
 // AppConfig holds general application settings.
 type AppConfig struct {
 	AppEnv         string
+	Port           string
 	BatchSize      int
 	Interval       time.Duration
 	ContextTimeout time.Duration
@@ -51,6 +52,7 @@ func NewConfig() *Config {
 	return &Config{
 		App: &AppConfig{
 			AppEnv:         getEnv("APP_ENV", "development"),
+			Port:           getEnv("PORT", "8080"),
 			BatchSize:      getEnvAsInt("BATCH_SIZE", 10000),
 			Interval:       getEnvAsDuration("INTERVAL_MS", 60000) * time.Millisecond,
 			ContextTimeout: getEnvAsDuration("CONTEXT_TIMEOUT_MS", 2000) * time.Millisecond,

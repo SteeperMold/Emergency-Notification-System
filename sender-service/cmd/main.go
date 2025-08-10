@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/adapter/consumers"
+	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/api/route"
 	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/bootstrap"
 	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/repository"
 	"github.com/SteeperMold/Emergency-Notification-System/sender-service/internal/service"
@@ -33,5 +34,11 @@ func main() {
 		cancel()
 	}()
 
-	log.Fatal(ntc.StartConsumer(ctx))
+	go func() {
+		log.Fatal(ntc.StartConsumer(ctx))
+	}()
+
+	log.Printf("listening on port %v", app.Config.App.Port)
+
+	route.Serve(app)
 }

@@ -21,6 +21,7 @@ type Config struct {
 // AppConfig holds general application settings.
 type AppConfig struct {
 	AppEnv         string
+	Port           string
 	MaxAttempts    int
 	ContextTimeout time.Duration
 }
@@ -60,6 +61,7 @@ func NewConfig() *Config {
 	return &Config{
 		App: &AppConfig{
 			AppEnv:         getEnv("APP_ENV", "development"),
+			Port:           getEnv("PORT", "8080"),
 			MaxAttempts:    getEnvAsInt("MAX_NOTIFICATION_ATTEMPTS", 3),
 			ContextTimeout: getEnvAsDuration("CONTEXT_TIMEOUT_MS", 2000) * time.Millisecond,
 		},

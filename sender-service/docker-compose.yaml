@@ -10,6 +10,9 @@ services:
       - .env
     volumes:
       - ./tmp/sms-dev:/tmp/sms-dev
+    labels:
+      prometheus.scrape: "true"
+      prometheus.port: "8080"
     depends_on:
       kafka:
         condition: service_started
