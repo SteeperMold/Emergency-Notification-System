@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"bytes"
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,14 +13,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap/zaptest"
 )
-
-type MockTwilioCallbackService struct {
-	mock.Mock
-}
-
-func (m *MockTwilioCallbackService) ProcessCallback(ctx context.Context, idStr, status string) error {
-	return m.Called(ctx, idStr, status).Error(0)
-}
 
 func TestTwilioStatusCallbackHandler_ProcessCallback(t *testing.T) {
 	type args struct {

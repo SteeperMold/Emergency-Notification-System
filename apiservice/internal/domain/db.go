@@ -12,4 +12,5 @@ type DBConn interface {
 	Query(context.Context, string, ...any) (pgx.Rows, error)
 	QueryRow(context.Context, string, ...any) pgx.Row
 	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Ping(context.Context) error
 }

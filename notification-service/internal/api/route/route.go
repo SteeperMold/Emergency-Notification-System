@@ -18,6 +18,7 @@ func Serve(app *bootstrap.Application) {
 	r := mux.NewRouter()
 
 	r.Handle("/metrics", promhttp.Handler())
+	NewHealthCheckRoute(r, app.DB, app.Logger, app.Config.App.ContextTimeout, app.KafkaFactory)
 
 	if app.Config.App.AppEnv == "production" {
 		validator := client.NewRequestValidator(app.Config.Twilio.AuthToken)

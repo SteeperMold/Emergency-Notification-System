@@ -6,6 +6,13 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+// KafkaFactory defines the contract for creating Kafka writers and performing health checks.
+type KafkaFactory interface {
+	Ping(ctx context.Context) error
+	NewWriter(topic string) *kafka.Writer
+	NewReader(topic string, groupID string) *kafka.Reader
+}
+
 // KafkaWriter abstracts the production of messages to a Kafka topic.
 // Implementations should handle batching, retries, and context-based cancellations.
 type KafkaWriter interface {

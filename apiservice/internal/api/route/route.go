@@ -21,6 +21,7 @@ func Serve(app *bootstrap.Application) {
 	r.Use(middleware.LoggingMiddleware(logger))
 
 	r.Handle("/metrics", promhttp.Handler())
+	NewHealthCheckRoute(r, db, logger, timeout, app.KafkaFactory)
 
 	NewSignupRouter(r, db, logger, timeout, app.Config.App.Jwt)
 	NewLoginRoute(r, db, logger, timeout, app.Config.App.Jwt)

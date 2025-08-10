@@ -3,12 +3,49 @@ package service_test
 import (
 	"context"
 
+	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/bootstrap"
 	"github.com/SteeperMold/Emergency-Notification-System/apiservice/internal/models"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/mock"
 )
+
+type MockDBConn struct {
+	mock.Mock
+}
+
+func (m *MockDBConn) Query(ctx context.Context, q string, queryArgs ...any) (pgx.Rows, error) {
+	args := m.Called(ctx, q, queryArgs)
+	return args.Get(0).(pgx.Rows), args.Error(1)
+}
+
+func (m *MockDBConn) QueryRow(ctx context.Context, q string, queryArgs ...any) pgx.Row {
+	return m.Called(ctx, q, queryArgs).Get(0).(pgx.Row)
+}
+
+func (m *MockDBConn) Exec(ctx context.Context, q string, queryArgs ...any) (pgconn.CommandTag, error) {
+	args := m.Called(ctx, q, queryArgs)
+	return args.Get(0).(pgconn.CommandTag), args.Error(1)
+}
+
+func (m *MockDBConn) Ping(ctx context.Context) error {
+	return m.Called(ctx).Error(0)
+}
+
+type MockKafkaFactory struct {
+	mock.Mock
+}
+
+func (m *MockKafkaFactory) Ping(ctx context.Context) error {
+	return m.Called(ctx).Error(0)
+}
+
+func (m *MockKafkaFactory) NewWriter(topic string, opts ...bootstrap.WriterOption) *kafka.Writer {
+	return m.Called(topic, opts).Get(0).(*kafka.Writer)
+}
 
 type MockContactsRepository struct {
 	mock.Mock
