@@ -1,10 +1,10 @@
-name: "api service audit"
+name: api-service-ci
 
 on:
   push:
     branches: [ main ]
     paths:
-      - "apiservice/**"
+      - "services/apiservice/**"
       - ".github/workflows/apiservice.yaml"
 
   pull_request:

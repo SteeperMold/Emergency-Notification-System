@@ -1,9 +1,9 @@
 include:
-  - ./apiservice/docker-compose.yaml
-  - ./contacts-worker/docker-compose.yaml
-  - ./notification-service/docker-compose.yaml
-  - ./rebalancer-service/docker-compose.yaml
-  - ./sender-service/docker-compose.yaml
+  - ./services/apiservice/docker-compose.yaml
+  - ./services/contacts-worker/docker-compose.yaml
+  - ./services/notification-service/docker-compose.yaml
+  - ./services/rebalancer-service/docker-compose.yaml
+  - ./services/sender-service/docker-compose.yaml
   - ./frontend/docker-compose.yaml
 
 services:

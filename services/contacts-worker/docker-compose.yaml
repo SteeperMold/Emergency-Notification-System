@@ -1,0 +1,27 @@
+services:
+  contacts-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      mode: replicated
+      replicas: 3
+    labels:
+      prometheus.scrape: "true"
+      prometheus.port: "8080"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${PORT}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      kafka:
+        condition: service_started
+      init-kafka:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      init-minio:
+        condition: service_completed_successfully
+

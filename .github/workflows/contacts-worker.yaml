@@ -1,10 +1,10 @@
-name: "contacts worker audit"
+name: contacts-worker-ci
 
 on:
   push:
     branches: [ main ]
     paths:
-      - "contacts-worker/**"
+      - "services/contacts-worker/**"
       - ".github/workflows/contacts-worker.yaml"
 
   pull_request:

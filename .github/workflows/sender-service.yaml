@@ -1,10 +1,10 @@
-name: "sender service audit"
+name: sender-service-ci
 
 on:
   push:
     branches: [ main ]
     paths:
-      - "sender-service/**"
+      - "services/sender-service/**"
       - ".github/workflows/sender-service.yaml"
 
   pull_request:

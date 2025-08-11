@@ -1,10 +1,10 @@
-name: "notification service audit"
+name: notification-service-ci
 
 on:
   push:
     branches: [ main ]
     paths:
-      - "notification-service/**"
+      - "services/notification-service/**"
       - ".github/workflows/notification-service.yaml"
 
   pull_request:

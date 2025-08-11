@@ -1,10 +1,10 @@
-name: "rebalancer service audit"
+name: rebalancer-service-ci
 
 on:
   push:
     branches: [ main ]
     paths:
-      - "rebalancer-service/**"
+      - "services/rebalancer-service/**"
       - ".github/workflows/rebalancer-service.yaml"
 
   pull_request:

@@ -1,0 +1,151 @@
+include:
+  - ./services/apiservice/docker-compose.yaml
+  - ./services/contacts-worker/docker-compose.yaml
+  - ./services/notification-service/docker-compose.yaml
+  - ./services/rebalancer-service/docker-compose.yaml
+  - ./services/sender-service/docker-compose.yaml
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.9.2
+    ports:
+      - "${ZOOKEEPER_CLIENT_PORT}:${ZOOKEEPER_CLIENT_PORT}"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "${ZOOKEEPER_CLIENT_PORT}"
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.9.2
+    depends_on:
+      - zookeeper
+    ports:
+      - "${KAFKA_ADVERTISED_PORT}:${KAFKA_ADVERTISED_PORT}"
+    environment:
+      KAFKA_BROKER_ID: "${KAFKA_BROKER_ID}"
+      KAFKA_ZOOKEEPER_CONNECT: "${KAFKA_ZOOKEEPER_CONNECT}"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  init-kafka:
+    image: confluentinc/cp-kafka:7.9.2
+    depends_on:
+      - kafka
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      '
+      until kafka-topics --bootstrap-server kafka:${KAFKA_ADVERTISED_PORT} --list; do
+        echo "Waiting for Kafka…"
+        sleep 1
+      done
+
+      echo "Creating kafka topics"
+      for T in $$(echo $KAFKA_TOPICS | tr "," " "); do
+        kafka-topics \
+          --bootstrap-server kafka:${KAFKA_ADVERTISED_PORT} \
+          --create \
+          --if-not-exists \
+          --topic "$$T" \
+          --replication-factor 1 \
+          --partitions 10
+      done
+
+      echo -e "Successfully created the following topics:"
+      kafka-topics --bootstrap-server kafka:${KAFKA_ADVERTISED_PORT} --list
+      '
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "${MINIO_PORT}:${MINIO_PORT}"
+      - "${MINIO_UI_PORT}:${MINIO_UI_PORT}"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_USER}"
+      MINIO_ROOT_PASSWORD: "${MINIO_PASSWORD}"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":${MINIO_UI_PORT}"
+
+  init-minio:
+    image: minio/minio:latest
+    depends_on:
+      - minio
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      '
+      until mc alias set myminio http://minio:${MINIO_PORT} \
+      "${MINIO_USER}" "${MINIO_PASSWORD}"; do
+        echo "Waiting for MinIO…"
+        sleep 1
+      done
+
+      for B in $$(echo $S3_BUCKETS | tr "," " "); do 
+        mc mb --ignore-existing myminio/$$B
+      done
+      '
+
+  postgres:
+    image: postgres:17.5
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init-sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 16G
+
+  e2e-tests:
+    build:
+      context: ./e2e
+      dockerfile: Dockerfile
+    environment:
+      DB_CONNECTION_STRING: "postgres://user:123456789admin@postgres:5432/notification_service_db?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
+      notification-migrate:
+        condition: service_completed_successfully
+
+      kafka:
+        condition: service_started
+      init-kafka:
+        condition: service_completed_successfully
+
+      minio:
+        condition: service_started
+      init-minio:
+        condition: service_completed_successfully
+
+      apiservice:
+        condition: service_healthy
+      contacts-worker:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      rebalancer-service:
+        condition: service_healthy
+      sender-service:
+        condition: service_healthy
+
+volumes:
+  minio_data:
+  pgdata:
