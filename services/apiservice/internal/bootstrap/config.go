@@ -26,6 +26,8 @@ type AppConfig struct {
 	FrontendOrigin          string
 	Jwt                     *JWTConfig
 	ContactsPerKafkaMessage int
+	PaginationDefaultLimit  int
+	PaginationMaxLimit      int
 }
 
 // JWTConfig holds JWT secret keys and expiry durations for access and refresh tokens.
@@ -82,6 +84,8 @@ func NewConfig() *Config {
 				RefreshExpiry: getEnvAsDuration("JWT_REFRESH_EXPIRY_H", 720) * time.Hour,
 			},
 			ContactsPerKafkaMessage: getEnvAsInt("CONTACTS_PER_KAFKA_MESSAGE", 10_000),
+			PaginationDefaultLimit:  getEnvAsInt("PAGINATION_DEFAULT_LIMIT", 50),
+			PaginationMaxLimit:      getEnvAsInt("PAGINATION_MAX_LIMIT", 100),
 		},
 		DB: &DBConfig{
 			Host:              getEnv("DB_HOST", "apiservice"),

@@ -22,18 +22,20 @@ func NewTemplateRepository(db domain.DBConn) *TemplateRepository {
 	}
 }
 
-// GetTemplatesByUserID retrieves all templates for a given user.
-// Returns an error if the query fails.
-func (tr *TemplateRepository) GetTemplatesByUserID(ctx context.Context, userID int) ([]*models.Template, error) {
+// GetTemplatesByUserID retrieves a paginated list of templates for the specified user.
+// It applies the given limit and offset for pagination.
+func (tr *TemplateRepository) GetTemplatesByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
 	const q = `
 		SELECT id, user_id, name, body, created_at, updated_at
 		FROM message_templates
 		WHERE user_id = $1
+		ORDER BY id
+		LIMIT $2 OFFSET $3
 	`
 
 	templates := make([]*models.Template, 0)
 
-	rows, err := tr.db.Query(ctx, q, userID)
+	rows, err := tr.db.Query(ctx, q, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

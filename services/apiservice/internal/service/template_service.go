@@ -9,19 +9,32 @@ import (
 
 // TemplateService provides operations for managing message templates.
 type TemplateService struct {
-	repository domain.TemplateRepository
+	repository   domain.TemplateRepository
+	defaultLimit int
+	maxLimit     int
 }
 
 // NewTemplateService creates and returns a new TemplateService with the given template repository.
-func NewTemplateService(r domain.TemplateRepository) *TemplateService {
+func NewTemplateService(r domain.TemplateRepository, defaultLimit, maxLimit int) *TemplateService {
 	return &TemplateService{
-		repository: r,
+		repository:   r,
+		defaultLimit: defaultLimit,
+		maxLimit:     maxLimit,
 	}
 }
 
 // GetTemplatesByUserID retrieves all templates belonging to the specified user.
-func (ts *TemplateService) GetTemplatesByUserID(ctx context.Context, userID int) ([]*models.Template, error) {
-	return ts.repository.GetTemplatesByUserID(ctx, userID)
+func (ts *TemplateService) GetTemplatesByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
+	if limit <= 0 {
+		limit = ts.defaultLimit
+	}
+	if limit > ts.maxLimit {
+		limit = ts.maxLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return ts.repository.GetTemplatesByUserID(ctx, userID, limit, offset)
 }
 
 // GetTemplateByID retrieves a specific template by its ID for the given user.

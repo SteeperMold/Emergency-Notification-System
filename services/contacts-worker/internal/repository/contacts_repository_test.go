@@ -18,7 +18,7 @@ func TestContactsRepository_SaveContacts(t *testing.T) {
 	repo := repository.NewContactsRepository(testPool)
 
 	t.Run("inserts new contacts and ignores duplicates", func(t *testing.T) {
-		fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+		fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 		if err := fixtures.Load(); err != nil {
 			t.Fatalf("cannot load fixtures: %v", err)
 		}

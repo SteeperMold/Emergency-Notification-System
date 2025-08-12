@@ -21,9 +21,10 @@ var (
 )
 
 // ContactsRepository defines CRUD operations against the persistence layer.
-// Implementations should handle SQL or ORM details and map domain errors.
+// Implementations should handle SQL details and map domain errors.
 type ContactsRepository interface {
-	GetContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error)
+	GetAllContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error)
+	GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error)
 	GetContactByID(ctx context.Context, userID, contactID int) (*models.Contact, error)
 	CreateContact(ctx context.Context, contact *models.Contact) (*models.Contact, error)
 	UpdateContact(ctx context.Context, userID, contactID int, updatedContact *models.Contact) (*models.Contact, error)
@@ -33,7 +34,7 @@ type ContactsRepository interface {
 // ContactsService defines business logic methods for contacts.
 // It validates input and delegates persistence to ContactsRepository.
 type ContactsService interface {
-	GetContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error)
+	GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error)
 	GetContactByID(ctx context.Context, userID, contactID int) (*models.Contact, error)
 	CreateContact(ctx context.Context, contact *models.Contact) (*models.Contact, error)
 	UpdateContact(ctx context.Context, userID, contactID int, updatedContact *models.Contact) (*models.Contact, error)

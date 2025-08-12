@@ -71,7 +71,7 @@ func runMigrations(db *sql.DB) {
 		panic(err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance("file://../../../db/migrations/notifications", "postgres", driver)
+	m, err := migrate.NewWithDatabaseInstance("file://../../../../db/migrations/notifications", "postgres", driver)
 	if err != nil {
 		panic(err)
 	}

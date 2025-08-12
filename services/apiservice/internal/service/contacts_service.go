@@ -11,23 +11,36 @@ import (
 // ContactsService encapsulates business logic around contacts management.
 // It validates input and delegates persistence to a ContactsRepository.
 type ContactsService struct {
-	repository domain.ContactsRepository
+	repository   domain.ContactsRepository
+	defaultLimit int
+	maxLimit     int
 }
 
 // NewContactsService constructs a ContactsService given a repository implementation.
-func NewContactsService(r domain.ContactsRepository) *ContactsService {
+func NewContactsService(r domain.ContactsRepository, defaultLimit, maxLimit int) *ContactsService {
 	return &ContactsService{
-		repository: r,
+		repository:   r,
+		defaultLimit: defaultLimit,
+		maxLimit:     maxLimit,
 	}
 }
 
 // GetContactsByUserID retrieves all contacts for a given user.
-func (cs *ContactsService) GetContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error) {
-	return cs.repository.GetContactsByUserID(ctx, userID)
+func (cs *ContactsService) GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
+	if limit <= 0 {
+		limit = cs.defaultLimit
+	}
+	if limit > cs.maxLimit {
+		limit = cs.maxLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return cs.repository.GetContactsByUserID(ctx, userID, limit, offset)
 }
 
 // GetContactByID retrieves a single contact by its ID for a given user.
-func (cs *ContactsService) GetContactByID(ctx context.Context, userID int, contactID int) (*models.Contact, error) {
+func (cs *ContactsService) GetContactByID(ctx context.Context, userID, contactID int) (*models.Contact, error) {
 	return cs.repository.GetContactByID(ctx, userID, contactID)
 }
 
@@ -49,7 +62,7 @@ func (cs *ContactsService) CreateContact(ctx context.Context, contact *models.Co
 }
 
 // UpdateContact validates and formats the updated contact, then applies changes via repository.
-func (cs *ContactsService) UpdateContact(ctx context.Context, userID int, contactID int, updatedContact *models.Contact) (*models.Contact, error) {
+func (cs *ContactsService) UpdateContact(ctx context.Context, userID, contactID int, updatedContact *models.Contact) (*models.Contact, error) {
 	if len(updatedContact.Name) == 0 || len(updatedContact.Name) > 32 {
 		return nil, domain.ErrInvalidContactName
 	}
@@ -66,6 +79,6 @@ func (cs *ContactsService) UpdateContact(ctx context.Context, userID int, contac
 
 // DeleteContact removes a contact by ID for the specified user.
 // Returns an error if deletion fails or the contact does not exist.
-func (cs *ContactsService) DeleteContact(ctx context.Context, userID int, contactID int) error {
+func (cs *ContactsService) DeleteContact(ctx context.Context, userID, contactID int) error {
 	return cs.repository.DeleteContact(ctx, userID, contactID)
 }

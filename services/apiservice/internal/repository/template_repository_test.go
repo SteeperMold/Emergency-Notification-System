@@ -21,7 +21,7 @@ func clearTemplates(t *testing.T, db *sql.DB) {
 }
 
 func TestTemplateRepository_CRUD(t *testing.T) {
-	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 	if err := fixtures.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestTemplateRepository_CRUD(t *testing.T) {
 		_, err = repo.CreateTemplate(ctx, &models.Template{UserID: userID, Name: "T2", Body: "B2"})
 		require.NoError(t, err)
 
-		list, err := repo.GetTemplatesByUserID(ctx, userID)
+		list, err := repo.GetTemplatesByUserID(ctx, userID, 100, 0)
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, len(list), 2)
 		names := []string{list[0].Name, list[1].Name}

@@ -23,7 +23,7 @@ func clearContacts(t *testing.T, db *sql.DB) {
 func TestCreateAndGetContact(t *testing.T) {
 	t.Cleanup(func() { clearContacts(t, testDB) })
 
-	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 	if err := fixtures.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestCreateAndGetContact(t *testing.T) {
 func TestContactsRepository_GetContactsByUserID(t *testing.T) {
 	t.Cleanup(func() { clearContacts(t, testDB) })
 
-	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 	if err := fixtures.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestContactsRepository_GetContactsByUserID(t *testing.T) {
 	_, err = repo.CreateContact(ctx, contactB)
 	require.NoError(t, err)
 
-	contacts, err := repo.GetContactsByUserID(ctx, userID)
+	contacts, err := repo.GetContactsByUserID(ctx, userID, 100, 0)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(contacts), 2)
 	names := []string{contacts[0].Name, contacts[1].Name}
@@ -83,7 +83,7 @@ func TestContactsRepository_GetContactsByUserID(t *testing.T) {
 func TestContactsRepository_GetContactByID_NotExists(t *testing.T) {
 	t.Cleanup(func() { clearContacts(t, testDB) })
 
-	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 	if err := fixtures.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestContactsRepository_GetContactByID_NotExists(t *testing.T) {
 func TestContactsRepository_CreateContact_UniqueConstraint(t *testing.T) {
 	t.Cleanup(func() { clearContacts(t, testDB) })
 
-	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 	if err := fixtures.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestContactsRepository_CreateContact_UniqueConstraint(t *testing.T) {
 func TestContactsRepository_UpdateContact(t *testing.T) {
 	t.Cleanup(func() { clearContacts(t, testDB) })
 
-	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 	if err := fixtures.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestContactsRepository_UpdateContact(t *testing.T) {
 func TestContactsRepository_DeleteContact(t *testing.T) {
 	t.Cleanup(func() { clearContacts(t, testDB) })
 
-	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 	if err := fixtures.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestContactsRepository_DeleteContact(t *testing.T) {
 func TestContactsRepository_DeleteContact_WrongUser(t *testing.T) {
 	t.Cleanup(func() { clearContacts(t, testDB) })
 
-	fixtures := makeFixtures(t, testDB, "../../../db/fixtures/users.yml")
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 	if err := fixtures.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}

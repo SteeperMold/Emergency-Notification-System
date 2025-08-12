@@ -37,7 +37,7 @@ func (sns *SendNotificationService) SendNotification(ctx context.Context, userID
 		return err
 	}
 
-	contacts, err := sns.contactsRepository.GetContactsByUserID(ctx, userID)
+	contacts, err := sns.contactsRepository.GetAllContactsByUserID(ctx, userID)
 	if err != nil {
 		return err
 	}

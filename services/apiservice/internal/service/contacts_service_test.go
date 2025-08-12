@@ -20,12 +20,12 @@ func TestContactsService_GetContactsByUserID(t *testing.T) {
 
 	m := new(MockContactsRepository)
 	m.
-		On("GetContactsByUserID", mock.Anything, 123).
+		On("GetContactsByUserID", mock.Anything, 123, 50, 0).
 		Return(contacts, nil).
 		Once()
-	svc := service.NewContactsService(m)
+	svc := service.NewContactsService(m, 50, 100)
 
-	res, err := svc.GetContactsByUserID(context.Background(), 123)
+	res, err := svc.GetContactsByUserID(context.Background(), 123, 0, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, contacts, res)
 	m.AssertExpectations(t)
@@ -39,7 +39,7 @@ func TestContactsService_GetContactByID(t *testing.T) {
 		On("GetContactByID", mock.Anything, 123, 456).
 		Return(contact, nil).
 		Once()
-	svc := service.NewContactsService(m)
+	svc := service.NewContactsService(m, 50, 100)
 
 	res, err := svc.GetContactByID(context.Background(), 123, 456)
 	assert.NoError(t, err)
@@ -125,7 +125,7 @@ func TestContactsService_CreateContact(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			m := new(MockContactsRepository)
 			tc.mockSetup(m)
-			svc := service.NewContactsService(m)
+			svc := service.NewContactsService(m, 50, 100)
 
 			res, err := svc.CreateContact(tc.args.ctx, tc.args.contact)
 			if tc.wantErr != nil {
@@ -235,7 +235,7 @@ func TestContactsService_UpdateContact(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			m := new(MockContactsRepository)
 			tc.mockSetup(m)
-			svc := service.NewContactsService(m)
+			svc := service.NewContactsService(m, 50, 100)
 
 			res, err := svc.UpdateContact(tc.args.ctx, tc.args.userID, tc.args.cid, tc.args.updatedContact)
 
@@ -258,7 +258,7 @@ func TestContactsService_DeleteContact(t *testing.T) {
 		On("DeleteContact", mock.Anything, 123, 42).
 		Return(nil).
 		Once()
-	svc := service.NewContactsService(m)
+	svc := service.NewContactsService(m, 50, 100)
 
 	err := svc.DeleteContact(context.Background(), 123, 42)
 	assert.NoError(t, err)

@@ -60,7 +60,11 @@ func (th *TemplateHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates, err := th.service.GetTemplatesByUserID(ctx, userID)
+	query := r.URL.Query()
+	limit, _ := strconv.Atoi(query.Get("limit"))
+	offset, _ := strconv.Atoi(query.Get("offset"))
+
+	templates, err := th.service.GetTemplatesByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		th.logError("internal server error", r, zap.Int("user_id", userID), zap.Error(err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)

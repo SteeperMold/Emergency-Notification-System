@@ -18,12 +18,12 @@ func TestTemplateService_GetTemplatesByUserID(t *testing.T) {
 	}
 	m := new(MockTemplateRepository)
 	m.
-		On("GetTemplatesByUserID", mock.Anything, 42).
+		On("GetTemplatesByUserID", mock.Anything, 42, mock.Anything, mock.Anything).
 		Return(expected, nil).
 		Once()
 
-	svc := service.NewTemplateService(m)
-	out, err := svc.GetTemplatesByUserID(context.Background(), 42)
+	svc := service.NewTemplateService(m, 50, 100)
+	out, err := svc.GetTemplatesByUserID(context.Background(), 42, 0, 0)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, out)
@@ -38,7 +38,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 		Return(expected, nil).
 		Once()
 
-	svc := service.NewTemplateService(m)
+	svc := service.NewTemplateService(m, 50, 100)
 	out, err := svc.GetTemplateByID(context.Background(), 42, 2)
 
 	assert.NoError(t, err)
@@ -109,7 +109,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 			if tc.mockSetup != nil {
 				tc.mockSetup(m)
 			}
-			svc := service.NewTemplateService(m)
+			svc := service.NewTemplateService(m, 50, 100)
 
 			out, err := svc.CreateTemplate(context.Background(), tc.args.tmpl)
 			if tc.wantErr != nil {
@@ -179,7 +179,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 			if tc.mockSetup != nil {
 				tc.mockSetup(m)
 			}
-			svc := service.NewTemplateService(m)
+			svc := service.NewTemplateService(m, 50, 100)
 
 			out, err := svc.UpdateTemplate(context.Background(), tc.args.userID, tc.args.tmplID, tc.args.update)
 			if tc.wantErr != nil {
@@ -202,7 +202,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 		Return(nil).
 		Once()
 
-	svc := service.NewTemplateService(m)
+	svc := service.NewTemplateService(m, 50, 100)
 	err := svc.DeleteTemplate(context.Background(), 1, 2)
 
 	assert.NoError(t, err)

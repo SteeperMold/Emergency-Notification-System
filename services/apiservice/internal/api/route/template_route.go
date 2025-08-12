@@ -14,9 +14,9 @@ import (
 
 // NewTemplateRoute registers HTTP routes for managing message templates on the given mux.Router.
 // Routes include GET, POST, PUT, and DELETE operations for /template and /template/{id}.
-func NewTemplateRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, timeout time.Duration) {
+func NewTemplateRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, timeout time.Duration, paginationDefaultLimit, paginationMaxLimit int) {
 	tr := repository.NewTemplateRepository(db)
-	ts := service.NewTemplateService(tr)
+	ts := service.NewTemplateService(tr, paginationDefaultLimit, paginationMaxLimit)
 	th := handler.NewTemplateHandler(ts, logger, timeout)
 
 	mux.HandleFunc("/template", th.Get).Methods(http.MethodGet, http.MethodOptions)

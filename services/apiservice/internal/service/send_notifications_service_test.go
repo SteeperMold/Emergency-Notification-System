@@ -50,7 +50,7 @@ func TestSendNotificationService_SendNotification(t *testing.T) {
 					Return(tmpl, nil).
 					Once()
 				cr.
-					On("GetContactsByUserID", mock.Anything, userID).
+					On("GetAllContactsByUserID", mock.Anything, userID).
 					Return(([]*models.Contact)(nil), assert.AnError).
 					Once()
 			},
@@ -65,7 +65,7 @@ func TestSendNotificationService_SendNotification(t *testing.T) {
 					Return(tmpl, nil).
 					Once()
 				cr.
-					On("GetContactsByUserID", mock.Anything, userID).
+					On("GetAllContactsByUserID", mock.Anything, userID).
 					Return(([]*models.Contact)(nil), nil).
 					Once()
 			},
@@ -80,7 +80,7 @@ func TestSendNotificationService_SendNotification(t *testing.T) {
 					Return(tmpl, nil).
 					Once()
 				cr.
-					On("GetContactsByUserID", mock.Anything, userID).
+					On("GetAllContactsByUserID", mock.Anything, userID).
 					Return(contacts, nil).
 					Once()
 				// first batch fails
@@ -102,7 +102,7 @@ func TestSendNotificationService_SendNotification(t *testing.T) {
 					Return(tmpl, nil).
 					Once()
 				cr.
-					On("GetContactsByUserID", mock.Anything, userID).
+					On("GetAllContactsByUserID", mock.Anything, userID).
 					Return(contacts, nil).
 					Once()
 

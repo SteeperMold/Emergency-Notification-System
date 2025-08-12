@@ -20,7 +20,7 @@ import (
 func TestGetNotificationByID(t *testing.T) {
 	ctx := context.Background()
 
-	loader := makeFixtures(t, testDB, "./../../../db/fixtures/notifications.yml")
+	loader := makeFixtures(t, testDB, "./../../../../db/fixtures/notifications.yml")
 	if err := loader.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestGetNotificationByID(t *testing.T) {
 func TestReschedule(t *testing.T) {
 	ctx := context.Background()
 
-	loader := makeFixtures(t, testDB, "./../../../db/fixtures/notifications.yml")
+	loader := makeFixtures(t, testDB, "./../../../../db/fixtures/notifications.yml")
 	if err := loader.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestReschedule(t *testing.T) {
 func TestMarkFailed(t *testing.T) {
 	ctx := context.Background()
 
-	loader := makeFixtures(t, testDB, "./../../../db/fixtures/notifications.yml")
+	loader := makeFixtures(t, testDB, "./../../../../db/fixtures/notifications.yml")
 	if err := loader.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}

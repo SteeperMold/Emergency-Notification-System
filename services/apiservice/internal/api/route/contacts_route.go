@@ -13,9 +13,9 @@ import (
 )
 
 // NewContactsRoute registers CRUD endpoints for managing contacts.
-func NewContactsRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, timeout time.Duration) {
+func NewContactsRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, timeout time.Duration, paginationDefaultLimit, paginationMaxLimit int) {
 	cr := repository.NewContactsRepository(db)
-	cs := service.NewContactsService(cr)
+	cs := service.NewContactsService(cr, paginationDefaultLimit, paginationMaxLimit)
 	ch := handler.NewContactsHandler(cs, logger, timeout)
 
 	mux.HandleFunc("/contacts", ch.Get).Methods(http.MethodGet, http.MethodOptions)

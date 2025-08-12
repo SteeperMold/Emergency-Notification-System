@@ -23,6 +23,7 @@ func Serve(app *bootstrap.Application) {
 	r.Handle("/metrics", promhttp.Handler())
 	NewHealthCheckRoute(r, db, logger, timeout, app.KafkaFactory)
 
+	// public endpoints
 	NewSignupRouter(r, db, logger, timeout, app.Config.App.Jwt)
 	NewLoginRoute(r, db, logger, timeout, app.Config.App.Jwt)
 	NewRefreshTokenRoute(r, db, logger, timeout, app.Config.App.Jwt)
@@ -30,9 +31,12 @@ func Serve(app *bootstrap.Application) {
 	private := r.NewRoute().Subrouter()
 	private.Use(middleware.JwtAuthMiddleware(app.Config.App.Jwt.AccessSecret))
 
+	// private endpoints
+	paginationDefaultLimit := app.Config.App.PaginationDefaultLimit
+	paginationMaxLimit := app.Config.App.PaginationMaxLimit
+	NewContactsRoute(private, db, logger, timeout, paginationDefaultLimit, paginationMaxLimit)
+	NewTemplateRoute(private, db, logger, timeout, paginationDefaultLimit, paginationMaxLimit)
 	NewProfileRoute(private, db, logger, timeout)
-	NewTemplateRoute(private, db, logger, timeout)
-	NewContactsRoute(private, db, logger, timeout)
 
 	contactsBucket := app.Config.S3.Buckets["contacts"]
 	contactsTopic := app.Config.Kafka.Topics["contacts.loading.tasks"]

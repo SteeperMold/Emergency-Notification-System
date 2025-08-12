@@ -18,7 +18,7 @@ import (
 func TestFetchAndUpdatePending(t *testing.T) {
 	ctx := context.Background()
 
-	loader := makeFixtures(t, testDB, "./../../../db/fixtures/notifications.yml")
+	loader := makeFixtures(t, testDB, "./../../../../db/fixtures/notifications.yml")
 	if err := loader.Load(); err != nil {
 		t.Fatalf("failed loading fixtures: %v", err)
 	}

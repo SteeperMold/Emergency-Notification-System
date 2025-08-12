@@ -42,7 +42,7 @@ func TestContactsHandler_Get(t *testing.T) {
 			userID: 1,
 			setup: func(m *MockContactsService) {
 				m.
-					On("GetContactsByUserID", mock.Anything, 1).
+					On("GetContactsByUserID", mock.Anything, 1, mock.Anything, mock.Anything).
 					Return([]*models.Contact{{ID: 5, UserID: 1, Name: "A", Phone: "P"}}, nil).
 					Once()
 			},
@@ -56,7 +56,7 @@ func TestContactsHandler_Get(t *testing.T) {
 			userID: 2,
 			setup: func(m *MockContactsService) {
 				m.
-					On("GetContactsByUserID", mock.Anything, 2).
+					On("GetContactsByUserID", mock.Anything, 2, mock.Anything, mock.Anything).
 					Return(([]*models.Contact)(nil), assert.AnError).
 					Once()
 			},

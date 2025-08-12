@@ -29,7 +29,7 @@ func TestTemplateHandler_Get(t *testing.T) {
 			userID: 1,
 			setup: func(m *MockTemplateService) {
 				m.
-					On("GetTemplatesByUserID", mock.Anything, 1).
+					On("GetTemplatesByUserID", mock.Anything, 1, mock.Anything, mock.Anything).
 					Return([]*models.Template{{ID: 1, UserID: 1, Name: "T1", Body: "B1"}}, nil).
 					Once()
 			},
@@ -41,7 +41,7 @@ func TestTemplateHandler_Get(t *testing.T) {
 			userID: 2,
 			setup: func(m *MockTemplateService) {
 				m.
-					On("GetTemplatesByUserID", mock.Anything, 2).
+					On("GetTemplatesByUserID", mock.Anything, 2, mock.Anything, mock.Anything).
 					Return(([]*models.Template)(nil), assert.AnError).
 					Once()
 			},

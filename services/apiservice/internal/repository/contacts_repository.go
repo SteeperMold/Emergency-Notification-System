@@ -22,8 +22,8 @@ func NewContactsRepository(db domain.DBConn) *ContactsRepository {
 	}
 }
 
-// GetContactsByUserID returns all contacts belonging to a specific user.
-func (cr *ContactsRepository) GetContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error) {
+// GetAllContactsByUserID retrieves all contacts for a specific user identified by userID.
+func (cr *ContactsRepository) GetAllContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error) {
 	const q = `
 		SELECT id, user_id, name, phone, created_at, updated_at
 		FROM contacts
@@ -33,6 +33,44 @@ func (cr *ContactsRepository) GetContactsByUserID(ctx context.Context, userID in
 	contacts := make([]*models.Contact, 0)
 
 	rows, err := cr.db.Query(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var c models.Contact
+
+		err := rows.Scan(&c.ID, &c.UserID, &c.Name, &c.Phone, &c.CreationTime, &c.UpdateTime)
+		if err != nil {
+			return nil, err
+		}
+
+		contacts = append(contacts, &c)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return contacts, nil
+}
+
+// GetContactsByUserID retrieves a paginated list of contacts for the specified user.
+// It applies the given limit and offset for pagination.
+func (cr *ContactsRepository) GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
+	const q = `
+		SELECT id, user_id, name, phone, created_at, updated_at
+		FROM contacts
+		WHERE user_id = $1
+		ORDER BY id
+		LIMIT $2 OFFSET $3
+	`
+
+	contacts := make([]*models.Contact, 0)
+
+	rows, err := cr.db.Query(ctx, q, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
