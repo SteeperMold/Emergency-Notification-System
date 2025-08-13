@@ -24,7 +24,8 @@ var (
 // Implementations should handle SQL details and map domain errors.
 type ContactsRepository interface {
 	GetAllContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error)
-	GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error)
+	GetContactsCountByUserID(ctx context.Context, userID int) (int, error)
+	GetContactsPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error)
 	GetContactByID(ctx context.Context, userID, contactID int) (*models.Contact, error)
 	CreateContact(ctx context.Context, contact *models.Contact) (*models.Contact, error)
 	UpdateContact(ctx context.Context, userID, contactID int, updatedContact *models.Contact) (*models.Contact, error)
@@ -34,7 +35,8 @@ type ContactsRepository interface {
 // ContactsService defines business logic methods for contacts.
 // It validates input and delegates persistence to ContactsRepository.
 type ContactsService interface {
-	GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error)
+	GetContactsCountByUserID(ctx context.Context, userID int) (int, error)
+	GetContactsPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error)
 	GetContactByID(ctx context.Context, userID, contactID int) (*models.Contact, error)
 	CreateContact(ctx context.Context, contact *models.Contact) (*models.Contact, error)
 	UpdateContact(ctx context.Context, userID, contactID int, updatedContact *models.Contact) (*models.Contact, error)
@@ -51,4 +53,10 @@ type PostContactRequest struct {
 type PutContactRequest struct {
 	Name  string `json:"name"`
 	Phone string `json:"phone"`
+}
+
+// GetContactsResponse represents the response payload for getting the list of user's contacts.
+type GetContactsResponse struct {
+	Contacts []*models.Contact `json:"contacts"`
+	Total    int               `json:"total"`
 }

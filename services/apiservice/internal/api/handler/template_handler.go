@@ -64,15 +64,25 @@ func (th *TemplateHandler) Get(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(query.Get("limit"))
 	offset, _ := strconv.Atoi(query.Get("offset"))
 
-	templates, err := th.service.GetTemplatesByUserID(ctx, userID, limit, offset)
+	templatesPage, err := th.service.GetTemplatesPageByUserID(ctx, userID, limit, offset)
 	if err != nil {
-		th.logError("internal server error", r, zap.Int("user_id", userID), zap.Error(err))
+		th.logError("failed to get templates page", r, zap.Int("user_id", userID), zap.Error(err))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	templatesCount, err := th.service.GetTemplatesCountByUserID(ctx, userID)
+	if err != nil {
+		th.logError("failed to get templates count", r, zap.Int("user_id", userID), zap.Error(err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(&templates)
+	err = json.NewEncoder(w).Encode(&domain.GetTemplatesResponse{
+		Templates: templatesPage,
+		Total:     templatesCount,
+	})
 	if err != nil {
 		th.logError("failed to write json to client", r, zap.Int("user_id", userID), zap.Error(err))
 	}

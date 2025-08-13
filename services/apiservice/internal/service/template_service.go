@@ -23,8 +23,13 @@ func NewTemplateService(r domain.TemplateRepository, defaultLimit, maxLimit int)
 	}
 }
 
-// GetTemplatesByUserID retrieves all templates belonging to the specified user.
-func (ts *TemplateService) GetTemplatesByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
+// GetTemplatesCountByUserID retrieves count of templates belonging to the specified user.
+func (ts *TemplateService) GetTemplatesCountByUserID(ctx context.Context, userID int) (int, error) {
+	return ts.repository.GetTemplatesCountByUserID(ctx, userID)
+}
+
+// GetTemplatesPageByUserID retrieves page of templates belonging to the specified user.
+func (ts *TemplateService) GetTemplatesPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
 	if limit <= 0 {
 		limit = ts.defaultLimit
 	}
@@ -34,7 +39,7 @@ func (ts *TemplateService) GetTemplatesByUserID(ctx context.Context, userID, lim
 	if offset < 0 {
 		offset = 0
 	}
-	return ts.repository.GetTemplatesByUserID(ctx, userID, limit, offset)
+	return ts.repository.GetTemplatesPageByUserID(ctx, userID, limit, offset)
 }
 
 // GetTemplateByID retrieves a specific template by its ID for the given user.

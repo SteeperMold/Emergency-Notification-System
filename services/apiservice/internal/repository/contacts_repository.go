@@ -57,9 +57,26 @@ func (cr *ContactsRepository) GetAllContactsByUserID(ctx context.Context, userID
 	return contacts, nil
 }
 
-// GetContactsByUserID retrieves a paginated list of contacts for the specified user.
+// GetContactsCountByUserID retrieves count of contacts belonging to the specified user.
+func (cr *ContactsRepository) GetContactsCountByUserID(ctx context.Context, userID int) (int, error) {
+	const q = `
+		SELECT COUNT(*)
+		FROM contacts
+		WHERE user_id = $1
+	`
+
+	var count int
+	err := cr.db.QueryRow(ctx, q, userID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetContactsPageByUserID retrieves a paginated list of contacts for the specified user.
 // It applies the given limit and offset for pagination.
-func (cr *ContactsRepository) GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
+func (cr *ContactsRepository) GetContactsPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
 	const q = `
 		SELECT id, user_id, name, phone, created_at, updated_at
 		FROM contacts

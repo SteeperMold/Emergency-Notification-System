@@ -12,6 +12,20 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestContactsService_GetContactsCountByUserID(t *testing.T) {
+	m := new(MockContactsRepository)
+	m.
+		On("GetContactsCountByUserID", mock.Anything, 123).
+		Return(5, nil).
+		Once()
+	svc := service.NewContactsService(m, 50, 100)
+
+	count, err := svc.GetContactsCountByUserID(context.Background(), 123)
+	assert.NoError(t, err)
+	assert.Equal(t, 5, count)
+	m.AssertExpectations(t)
+}
+
 func TestContactsService_GetContactsByUserID(t *testing.T) {
 	contacts := []*models.Contact{
 		{ID: 1, UserID: 123, Name: "Alice", Phone: "+79123456789"},
@@ -20,12 +34,12 @@ func TestContactsService_GetContactsByUserID(t *testing.T) {
 
 	m := new(MockContactsRepository)
 	m.
-		On("GetContactsByUserID", mock.Anything, 123, 50, 0).
+		On("GetContactsPageByUserID", mock.Anything, 123, 50, 0).
 		Return(contacts, nil).
 		Once()
 	svc := service.NewContactsService(m, 50, 100)
 
-	res, err := svc.GetContactsByUserID(context.Background(), 123, 0, 0)
+	res, err := svc.GetContactsPageByUserID(context.Background(), 123, 0, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, contacts, res)
 	m.AssertExpectations(t)

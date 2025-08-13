@@ -51,12 +51,17 @@ type MockContactsRepository struct {
 	mock.Mock
 }
 
+func (m *MockContactsRepository) GetContactsCountByUserID(ctx context.Context, userID int) (int, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(int), args.Error(1)
+}
+
 func (m *MockContactsRepository) GetAllContactsByUserID(ctx context.Context, userID int) ([]*models.Contact, error) {
 	args := m.Called(ctx, userID)
 	return args.Get(0).([]*models.Contact), args.Error(1)
 }
 
-func (m *MockContactsRepository) GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
+func (m *MockContactsRepository) GetContactsPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
 	args := m.Called(ctx, userID, limit, offset)
 	return args.Get(0).([]*models.Contact), args.Error(1)
 }
@@ -121,7 +126,12 @@ type MockTemplateRepository struct {
 	mock.Mock
 }
 
-func (m *MockTemplateRepository) GetTemplatesByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
+func (m *MockTemplateRepository) GetTemplatesCountByUserID(ctx context.Context, userID int) (int, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(int), args.Error(1)
+}
+
+func (m *MockTemplateRepository) GetTemplatesPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
 	args := m.Called(ctx, userID, limit, offset)
 	return args.Get(0).([]*models.Template), args.Error(1)
 }

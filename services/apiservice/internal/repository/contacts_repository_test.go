@@ -20,6 +20,52 @@ func clearContacts(t *testing.T, db *sql.DB) {
 	require.NoError(t, err)
 }
 
+func TestContactsRepository_GetAllContactsByUserID(t *testing.T) {
+	t.Cleanup(func() { clearContacts(t, testDB) })
+
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
+	require.NoError(t, fixtures.Load())
+
+	ctx := context.Background()
+	userID := 1
+	repo := repository.NewContactsRepository(testPool)
+
+	contact1 := &models.Contact{UserID: userID, Name: "Foo", Phone: "+111"}
+	contact2 := &models.Contact{UserID: userID, Name: "Bar", Phone: "+222"}
+	_, err := repo.CreateContact(ctx, contact1)
+	require.NoError(t, err)
+	_, err = repo.CreateContact(ctx, contact2)
+	require.NoError(t, err)
+
+	contacts, err := repo.GetAllContactsByUserID(ctx, userID)
+	require.NoError(t, err)
+	require.Len(t, contacts, 2)
+	require.ElementsMatch(t, []string{"Foo", "Bar"}, []string{contacts[0].Name, contacts[1].Name})
+}
+
+func TestContactsRepository_GetContactsCountByUserID(t *testing.T) {
+	t.Cleanup(func() { clearContacts(t, testDB) })
+
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
+	require.NoError(t, fixtures.Load())
+
+	ctx := context.Background()
+	userID := 1
+	repo := repository.NewContactsRepository(testPool)
+
+	count, err := repo.GetContactsCountByUserID(ctx, userID)
+	require.NoError(t, err)
+	require.Equal(t, 0, count)
+
+	contact := &models.Contact{UserID: userID, Name: "Counted", Phone: "+999"}
+	_, err = repo.CreateContact(ctx, contact)
+	require.NoError(t, err)
+
+	count, err = repo.GetContactsCountByUserID(ctx, userID)
+	require.NoError(t, err)
+	require.Equal(t, 1, count)
+}
+
 func TestCreateAndGetContact(t *testing.T) {
 	t.Cleanup(func() { clearContacts(t, testDB) })
 
@@ -72,7 +118,7 @@ func TestContactsRepository_GetContactsByUserID(t *testing.T) {
 	_, err = repo.CreateContact(ctx, contactB)
 	require.NoError(t, err)
 
-	contacts, err := repo.GetContactsByUserID(ctx, userID, 100, 0)
+	contacts, err := repo.GetContactsPageByUserID(ctx, userID, 100, 0)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(contacts), 2)
 	names := []string{contacts[0].Name, contacts[1].Name}

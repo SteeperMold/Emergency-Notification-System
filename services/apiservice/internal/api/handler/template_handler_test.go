@@ -17,31 +17,45 @@ import (
 
 // --- GET /templates ---
 func TestTemplateHandler_Get(t *testing.T) {
+	type resp struct {
+		Templates []*models.Template `json:"templates"`
+		Total     int                `json:"total"`
+	}
+
 	tests := []struct {
 		name       string
 		userID     int
 		setup      func(m *MockTemplateService)
 		wantStatus int
-		wantBody   []*models.Template
+		wantBody   resp
 	}{
 		{
 			name:   "success",
 			userID: 1,
 			setup: func(m *MockTemplateService) {
 				m.
-					On("GetTemplatesByUserID", mock.Anything, 1, mock.Anything, mock.Anything).
+					On("GetTemplatesPageByUserID", mock.Anything, 1, mock.Anything, mock.Anything).
 					Return([]*models.Template{{ID: 1, UserID: 1, Name: "T1", Body: "B1"}}, nil).
+					Once()
+				m.
+					On("GetTemplatesCountByUserID", mock.Anything, 1).
+					Return(1, nil).
 					Once()
 			},
 			wantStatus: http.StatusOK,
-			wantBody:   []*models.Template{{ID: 1, UserID: 1, Name: "T1", Body: "B1"}},
+			wantBody: resp{
+				Templates: []*models.Template{
+					{ID: 1, UserID: 1, Name: "T1", Body: "B1"},
+				},
+				Total: 1,
+			},
 		},
 		{
 			name:   "service error",
 			userID: 2,
 			setup: func(m *MockTemplateService) {
 				m.
-					On("GetTemplatesByUserID", mock.Anything, 2, mock.Anything, mock.Anything).
+					On("GetTemplatesPageByUserID", mock.Anything, 2, mock.Anything, mock.Anything).
 					Return(([]*models.Template)(nil), assert.AnError).
 					Once()
 			},
@@ -67,7 +81,7 @@ func TestTemplateHandler_Get(t *testing.T) {
 
 			assert.Equal(t, tc.wantStatus, res.StatusCode)
 			if tc.wantStatus == http.StatusOK {
-				var got []*models.Template
+				var got resp
 				err := json.NewDecoder(res.Body).Decode(&got)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.wantBody, got)

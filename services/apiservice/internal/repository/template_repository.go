@@ -22,9 +22,26 @@ func NewTemplateRepository(db domain.DBConn) *TemplateRepository {
 	}
 }
 
-// GetTemplatesByUserID retrieves a paginated list of templates for the specified user.
+// GetTemplatesCountByUserID retrieves count of templates belonging to the specified user.
+func (tr *TemplateRepository) GetTemplatesCountByUserID(ctx context.Context, userID int) (int, error) {
+	const q = `
+		SELECT COUNT(*)
+		FROM message_templates
+		WHERE user_id = $1
+	`
+
+	var count int
+	err := tr.db.QueryRow(ctx, q, userID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// GetTemplatesPageByUserID retrieves a paginated list of templates for the specified user.
 // It applies the given limit and offset for pagination.
-func (tr *TemplateRepository) GetTemplatesByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
+func (tr *TemplateRepository) GetTemplatesPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
 	const q = `
 		SELECT id, user_id, name, body, created_at, updated_at
 		FROM message_templates

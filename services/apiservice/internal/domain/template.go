@@ -18,7 +18,8 @@ var (
 
 // TemplateRepository defines the interface for persisting and retrieving message templates from a data store.
 type TemplateRepository interface {
-	GetTemplatesByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error)
+	GetTemplatesCountByUserID(ctx context.Context, userID int) (int, error)
+	GetTemplatesPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error)
 	GetTemplateByID(ctx context.Context, userID, templateID int) (*models.Template, error)
 	CreateTemplate(ctx context.Context, tmpl *models.Template) (*models.Template, error)
 	UpdateTemplate(ctx context.Context, userID, tmplID int, updatedTmpl *models.Template) (*models.Template, error)
@@ -27,7 +28,8 @@ type TemplateRepository interface {
 
 // TemplateService defines the interface for business logic operations on message templates.
 type TemplateService interface {
-	GetTemplatesByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error)
+	GetTemplatesCountByUserID(ctx context.Context, userID int) (int, error)
+	GetTemplatesPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error)
 	GetTemplateByID(ctx context.Context, userID, templateID int) (*models.Template, error)
 	CreateTemplate(ctx context.Context, template *models.Template) (*models.Template, error)
 	UpdateTemplate(ctx context.Context, userID, tmplID int, updatedTmpl *models.Template) (*models.Template, error)
@@ -44,4 +46,10 @@ type PostTemplateRequest struct {
 type PutTemplateRequest struct {
 	Name string `json:"name"`
 	Body string `json:"body"`
+}
+
+// GetTemplatesResponse represents the response payload for getting the list of user's templates.
+type GetTemplatesResponse struct {
+	Templates []*models.Template `json:"templates"`
+	Total     int                `json:"total"`
 }

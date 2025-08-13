@@ -20,6 +20,33 @@ func clearTemplates(t *testing.T, db *sql.DB) {
 	require.NoError(t, err)
 }
 
+func TestTemplateRepository_GetTemplatesCountByUserID(t *testing.T) {
+	t.Cleanup(func() { clearTemplates(t, testDB) })
+
+	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
+	require.NoError(t, fixtures.Load())
+
+	ctx := context.Background()
+	userID := 1
+	repo := repository.NewTemplateRepository(testPool)
+
+	count, err := repo.GetTemplatesCountByUserID(ctx, userID)
+	require.NoError(t, err)
+	require.Equal(t, 0, count)
+
+	template := &models.Template{
+		UserID: userID,
+		Name:   "Welcome",
+		Body:   "Hello, welcome to our service!",
+	}
+	_, err = repo.CreateTemplate(ctx, template)
+	require.NoError(t, err)
+
+	count, err = repo.GetTemplatesCountByUserID(ctx, userID)
+	require.NoError(t, err)
+	require.Equal(t, 1, count)
+}
+
 func TestTemplateRepository_CRUD(t *testing.T) {
 	fixtures := makeFixtures(t, testDB, "../../../../db/fixtures/users.yml")
 	if err := fixtures.Load(); err != nil {
@@ -52,7 +79,7 @@ func TestTemplateRepository_CRUD(t *testing.T) {
 		_, err = repo.CreateTemplate(ctx, &models.Template{UserID: userID, Name: "T2", Body: "B2"})
 		require.NoError(t, err)
 
-		list, err := repo.GetTemplatesByUserID(ctx, userID, 100, 0)
+		list, err := repo.GetTemplatesPageByUserID(ctx, userID, 100, 0)
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, len(list), 2)
 		names := []string{list[0].Name, list[1].Name}

@@ -30,25 +30,37 @@ var (
 
 // --- GET /contacts ---
 func TestContactsHandler_Get(t *testing.T) {
+	type resp struct {
+		Contacts []*models.Contact `json:"contacts"`
+		Total    int               `json:"total"`
+	}
+
 	tests := []struct {
 		name       string
 		userID     int
 		setup      func(m *MockContactsService)
 		wantStatus int
-		wantBody   []*models.Contact
+		wantBody   resp
 	}{
 		{
 			name:   "success",
 			userID: 1,
 			setup: func(m *MockContactsService) {
 				m.
-					On("GetContactsByUserID", mock.Anything, 1, mock.Anything, mock.Anything).
+					On("GetContactsPageByUserID", mock.Anything, 1, mock.Anything, mock.Anything).
 					Return([]*models.Contact{{ID: 5, UserID: 1, Name: "A", Phone: "P"}}, nil).
+					Once()
+				m.
+					On("GetContactsCountByUserID", mock.Anything, 1).
+					Return(1, nil).
 					Once()
 			},
 			wantStatus: http.StatusOK,
-			wantBody: []*models.Contact{
-				{ID: 5, UserID: 1, Name: "A", Phone: "P"},
+			wantBody: resp{
+				Contacts: []*models.Contact{
+					{ID: 5, UserID: 1, Name: "A", Phone: "P"},
+				},
+				Total: 1,
 			},
 		},
 		{
@@ -56,7 +68,7 @@ func TestContactsHandler_Get(t *testing.T) {
 			userID: 2,
 			setup: func(m *MockContactsService) {
 				m.
-					On("GetContactsByUserID", mock.Anything, 2, mock.Anything, mock.Anything).
+					On("GetContactsPageByUserID", mock.Anything, 2, mock.Anything, mock.Anything).
 					Return(([]*models.Contact)(nil), assert.AnError).
 					Once()
 			},
@@ -82,7 +94,7 @@ func TestContactsHandler_Get(t *testing.T) {
 
 			assert.Equal(t, tc.wantStatus, res.StatusCode)
 			if tc.wantStatus == http.StatusOK {
-				var got []*models.Contact
+				var got resp
 				err := json.NewDecoder(res.Body).Decode(&got)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.wantBody, got)

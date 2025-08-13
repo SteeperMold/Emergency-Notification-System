@@ -65,15 +65,25 @@ func (ch *ContactsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(query.Get("limit"))
 	offset, _ := strconv.Atoi(query.Get("offset"))
 
-	contacts, err := ch.service.GetContactsByUserID(ctx, userID, limit, offset)
+	contactsPage, err := ch.service.GetContactsPageByUserID(ctx, userID, limit, offset)
 	if err != nil {
-		ch.logError("internal server error", r, zap.Int("user_id", userID), zap.Error(err))
+		ch.logError("failed to get contacts page", r, zap.Int("user_id", userID), zap.Error(err))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	contactsCount, err := ch.service.GetContactsCountByUserID(ctx, userID)
+	if err != nil {
+		ch.logError("failed to get contacts count", r, zap.Int("user_id", userID), zap.Error(err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(&contacts)
+	err = json.NewEncoder(w).Encode(&domain.GetContactsResponse{
+		Contacts: contactsPage,
+		Total:    contactsCount,
+	})
 	if err != nil {
 		ch.logError("failed to write json to client", r, zap.Int("user_id", userID), zap.Error(err))
 	}

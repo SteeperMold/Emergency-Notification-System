@@ -25,8 +25,13 @@ func NewContactsService(r domain.ContactsRepository, defaultLimit, maxLimit int)
 	}
 }
 
-// GetContactsByUserID retrieves all contacts for a given user.
-func (cs *ContactsService) GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
+// GetContactsCountByUserID retrieves count of contacts belonging to the specified user.
+func (cs *ContactsService) GetContactsCountByUserID(ctx context.Context, userID int) (int, error) {
+	return cs.repository.GetContactsCountByUserID(ctx, userID)
+}
+
+// GetContactsPageByUserID retrieves page of contacts for a given user.
+func (cs *ContactsService) GetContactsPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
 	if limit <= 0 {
 		limit = cs.defaultLimit
 	}
@@ -36,7 +41,7 @@ func (cs *ContactsService) GetContactsByUserID(ctx context.Context, userID, limi
 	if offset < 0 {
 		offset = 0
 	}
-	return cs.repository.GetContactsByUserID(ctx, userID, limit, offset)
+	return cs.repository.GetContactsPageByUserID(ctx, userID, limit, offset)
 }
 
 // GetContactByID retrieves a single contact by its ID for a given user.

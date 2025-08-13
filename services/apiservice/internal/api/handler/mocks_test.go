@@ -13,7 +13,12 @@ type MockContactsService struct {
 	mock.Mock
 }
 
-func (m *MockContactsService) GetContactsByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
+func (m *MockContactsService) GetContactsCountByUserID(ctx context.Context, userID int) (int, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(int), args.Error(1)
+}
+
+func (m *MockContactsService) GetContactsPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Contact, error) {
 	args := m.Called(ctx, userID, limit, offset)
 	return args.Get(0).([]*models.Contact), args.Error(1)
 }
@@ -105,7 +110,12 @@ type MockTemplateService struct {
 	mock.Mock
 }
 
-func (m *MockTemplateService) GetTemplatesByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
+func (m *MockTemplateService) GetTemplatesCountByUserID(ctx context.Context, userID int) (int, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(int), args.Error(1)
+}
+
+func (m *MockTemplateService) GetTemplatesPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
 	args := m.Called(ctx, userID, limit, offset)
 	return args.Get(0).([]*models.Template), args.Error(1)
 }

@@ -12,18 +12,32 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestTemplateService_GetTemplatesCountByUserID(t *testing.T) {
+	m := new(MockTemplateRepository)
+	m.
+		On("GetTemplatesCountByUserID", mock.Anything, 123).
+		Return(7, nil).
+		Once()
+	svc := service.NewTemplateService(m, 50, 100)
+
+	count, err := svc.GetTemplatesCountByUserID(context.Background(), 123)
+	assert.NoError(t, err)
+	assert.Equal(t, 7, count)
+	m.AssertExpectations(t)
+}
+
 func TestTemplateService_GetTemplatesByUserID(t *testing.T) {
 	expected := []*models.Template{
 		{ID: 1, UserID: 42, Name: "T1", Body: "B1"},
 	}
 	m := new(MockTemplateRepository)
 	m.
-		On("GetTemplatesByUserID", mock.Anything, 42, mock.Anything, mock.Anything).
+		On("GetTemplatesPageByUserID", mock.Anything, 42, mock.Anything, mock.Anything).
 		Return(expected, nil).
 		Once()
 
 	svc := service.NewTemplateService(m, 50, 100)
-	out, err := svc.GetTemplatesByUserID(context.Background(), 42, 0, 0)
+	out, err := svc.GetTemplatesPageByUserID(context.Background(), 42, 0, 0)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, out)
