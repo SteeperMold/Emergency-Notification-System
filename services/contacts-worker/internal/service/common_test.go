@@ -25,8 +25,8 @@ func TestIngestAndSave(t *testing.T) {
 		name        string
 		batchSize   int
 		rows        [][]string
-		providerErr error   // error returned by provider
-		setupMock   setupFn // expectations on SaveContacts
+		providerErr error
+		setupMock   setupFn
 		wantTotal   int
 		wantErr     bool
 	}{

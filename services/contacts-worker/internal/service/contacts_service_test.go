@@ -54,19 +54,17 @@ func TestContactsService_ProcessFile(t *testing.T) {
 			name: "CSV processing success",
 			body: []byte("name,email\nAlice,+79123456789\nBob,+79123456788\n"),
 			setupMocks: func(repo *MockContactsRepository, s3c *MockS3Client) {
-				// expect save of two contacts
-				// we’ll get two batches, one per worker that got a row
+				// here and further on we don't specify the expected number of calls because
+				// it might depend on the machine configuration and amount of logical cpus
 				repo.
 					On("SaveContacts", mock.Anything, mock.Anything).
-					Return(nil).
-					Twice()
+					Return(nil)
 				s3c.
 					On("GetObjectWithContext", mock.Anything, mock.Anything, mock.Anything).
 					Return(&s3.GetObjectOutput{
 						Body: io.NopCloser(bytes.NewReader([]byte("name,email\nAlice,+79123456789\nBob,+79123456788\n"))),
 					}, nil).
 					Once()
-				// S3 delete
 				s3c.
 					On("DeleteObjectWithContext", mock.Anything, mock.MatchedBy(func(input *s3.DeleteObjectInput) bool {
 						return aws.StringValue(input.Bucket) == "test-bucket" && aws.StringValue(input.Key) == "key.csv"
@@ -120,7 +118,6 @@ func TestContactsService_ProcessFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Initialize mocks
 			repo := new(MockContactsRepository)
 			s3c := new(MockS3Client)
 			bucket := "test-bucket"
