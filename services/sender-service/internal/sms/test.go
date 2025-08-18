@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"runtime"
 	"time"
 )
 
@@ -24,74 +25,84 @@ func (e TestSendError) Retryable() bool {
 	return e.retryable
 }
 
-// TestSmsSender is a mock SMS sender used for testing purposes.
-// It simulates SMS send failures and delivery callbacks with configurable probabilities and delays.
+// TestSmsSender simulates an SMS provider for testing purposes.
+// It can be configured to randomly fail sending messages or callbacks.
+// TestSmsSender doesn't write messages anywhere, it only sends callback with sms status.
 type TestSmsSender struct {
 	CallbackBaseURL  string
 	FailRate         float64       // 0.0–1.0 chance of send failure
 	CallbackDelay    time.Duration // how long until we fire the callback
 	CallbackFailRate float64       // 0.0–1.0 chance of callback failure
 	rng              *rand.Rand
+	jobs             chan callbackJob
 }
 
-// NewTestSmsSender creates and returns a new TestSmsSender.
+type callbackJob struct {
+	to             string
+	notificationID string
+	sid            string
+	callbackFailed bool
+}
+
+// NewTestSmsSender returns a new TestSmsSender with the given parameters.
 func NewTestSmsSender(callbackBaseURL string, failRate, cbFailRate float64, cbDelay time.Duration) *TestSmsSender {
-	return &TestSmsSender{
+	s := &TestSmsSender{
 		CallbackBaseURL:  callbackBaseURL,
 		FailRate:         failRate,
 		CallbackDelay:    cbDelay,
 		CallbackFailRate: cbFailRate,
 		rng:              rand.New(rand.NewSource(time.Now().UnixNano())),
+		jobs:             make(chan callbackJob, 1000),
 	}
+
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go s.worker()
+	}
+
+	return s
 }
 
-// SendSMS simulates sending an SMS and schedules a callback with a delay.
-// It randomly fails sending based on the configured FailRate,
-// and the callback can simulate success or failure based on CallbackFailRate.
-// Returns a retryable TestSendError if sending fails.
+// SendSMS simulates sending an SMS message.
+// It may return a retryable error depending on the configured FailRate.
+// If the sending is successful, a delivery callback will eventually be sent.
 func (d *TestSmsSender) SendSMS(to, body, notificationID string) error {
 	if d.rng.Float64() < d.FailRate {
-		return TestSendError{
-			Message:   "dev sender: simulated send failure",
-			retryable: true,
-		}
+		return TestSendError{"dev sender: simulated send failure", true}
 	}
 
-	callbackFailed := d.rng.Float64() < d.CallbackFailRate
+	sid := fmt.Sprintf("%s__%s.txt", time.Now().Format("02.01.2006-15:04:05"), to)
+	cbFailed := d.rng.Float64() < d.CallbackFailRate
 
-	ts := time.Now().Format("02.01.2006-15:04:05")
-	sid := fmt.Sprintf("%s__%s.txt", ts, to)
+	d.jobs <- callbackJob{to, notificationID, sid, cbFailed}
+	return nil
+}
 
-	go func(sid string) {
+func (d *TestSmsSender) worker() {
+	for job := range d.jobs {
 		time.Sleep(d.CallbackDelay)
 
 		u, err := url.Parse(d.CallbackBaseURL)
 		if err != nil {
-			return
+			continue
 		}
 
 		q := u.Query()
-		q.Set("notification_id", notificationID)
+		q.Set("notification_id", job.notificationID)
 		u.RawQuery = q.Encode()
 		cbURL := u.String()
 
-		var messageStatus string
-
-		if callbackFailed {
-			messageStatus = "failed"
-		} else {
-			messageStatus = "sent"
+		status := "sent"
+		if job.callbackFailed {
+			status = "failed"
 		}
 
 		form := url.Values{
-			"MessageSid":    {sid},
-			"MessageStatus": {messageStatus},
-			"To":            {to},
+			"MessageSid":    {job.sid},
+			"MessageStatus": {status},
+			"To":            {job.to},
 			"From":          {"DEV-SENDER"},
 		}
 
 		_, _ = http.PostForm(cbURL, form)
-	}(sid)
-
-	return nil
+	}
 }

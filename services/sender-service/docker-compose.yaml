@@ -3,9 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    networks:
+      - ens-net
     deploy:
       mode: replicated
-      replicas: 5
+      replicas: 2
     env_file:
       - .env
     volumes:

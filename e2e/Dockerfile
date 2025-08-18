@@ -1,4 +1,4 @@
-FROM golang:1.24.3 AS builder
+FROM golang:1.24.3
 
 WORKDIR /app
 
@@ -7,4 +7,5 @@ RUN go mod download
 
 COPY . .
 
-CMD ["go", "test", "-v", "./..."]
+ENTRYPOINT ["go", "test"]
+CMD ["-v", "./..."]

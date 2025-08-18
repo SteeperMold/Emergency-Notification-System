@@ -3,6 +3,7 @@ module github.com/SteeperMold/Emergency-Notification-System/e2e
 go 1.24.3
 
 require (
+	github.com/bxcodec/faker/v4 v4.0.0-beta.3
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/stretchr/testify v1.10.0
 )

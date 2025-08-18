@@ -16,6 +16,7 @@ import (
 // registers the callback route, and listens on the configured port.
 func Serve(app *bootstrap.Application) {
 	r := mux.NewRouter()
+	r.Use(middleware.LoggingMiddleware(app.Logger))
 
 	r.Handle("/metrics", promhttp.Handler())
 	NewHealthCheckRoute(r, app.DB, app.Logger, app.Config.App.ContextTimeout, app.KafkaFactory)
