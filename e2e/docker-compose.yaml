@@ -1,0 +1,91 @@
+include:
+  - ./../docker-compose.yaml
+
+services:
+  e2e-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - ens-net
+    profiles:
+      - "e2e"
+    environment:
+      DB_CONNECTION_STRING: "postgres://user:123456789admin@postgres:5432/notification_service_db?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
+      notification-migrate:
+        condition: service_completed_successfully
+
+      kafka:
+        condition: service_started
+      init-kafka:
+        condition: service_completed_successfully
+
+      minio:
+        condition: service_started
+      init-minio:
+        condition: service_completed_successfully
+
+      apiservice:
+        condition: service_healthy
+      contacts-worker:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      rebalancer-service:
+        condition: service_healthy
+      sender-service:
+        condition: service_healthy
+
+  e2e-tests-load:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - ens-net
+    profiles:
+      - "e2e-load"
+    environment:
+      DB_CONNECTION_STRING: "postgres://user:123456789admin@postgres:5432/notification_service_db?sslmode=disable"
+    command: [ "-v", "-tags=load", "-timeout", "40m" ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
+      notification-migrate:
+        condition: service_completed_successfully
+
+      kafka:
+        condition: service_started
+      init-kafka:
+        condition: service_completed_successfully
+
+      minio:
+        condition: service_started
+      init-minio:
+        condition: service_completed_successfully
+
+      apiservice:
+        condition: service_healthy
+      contacts-worker:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      rebalancer-service:
+        condition: service_healthy
+      sender-service:
+        condition: service_healthy
+
+      alloy:
+        condition: service_started
+      loki:
+        condition: service_started
+      prometheus:
+        condition: service_started
+      grafana:
+        condition: service_started

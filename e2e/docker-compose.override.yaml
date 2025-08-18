@@ -1,0 +1,20 @@
+services:
+  apiservice:
+    environment:
+      APP_ENV: test
+
+  contacts-worker:
+    environment:
+      APP_ENV: test
+
+  notification-service:
+    environment:
+      APP_ENV: test
+
+  rebalancer-service:
+    environment:
+      APP_ENV: test
+
+  sender-service:
+    environment:
+      APP_ENV: test

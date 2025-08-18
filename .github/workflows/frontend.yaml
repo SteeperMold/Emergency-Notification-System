@@ -1,4 +1,4 @@
-name: "frontend audit"
+name: frontend-ci
 
 on:
   push:

@@ -1,0 +1,82 @@
+package service
+
+import (
+	"context"
+
+	"github.com/SteeperMold/Emergency-Notification-System/services/apiservice/internal/domain"
+	"github.com/SteeperMold/Emergency-Notification-System/services/apiservice/internal/models"
+)
+
+// TemplateService provides operations for managing message templates.
+type TemplateService struct {
+	repository   domain.TemplateRepository
+	defaultLimit int
+	maxLimit     int
+}
+
+// NewTemplateService creates and returns a new TemplateService with the given template repository.
+func NewTemplateService(r domain.TemplateRepository, defaultLimit, maxLimit int) *TemplateService {
+	return &TemplateService{
+		repository:   r,
+		defaultLimit: defaultLimit,
+		maxLimit:     maxLimit,
+	}
+}
+
+// GetTemplatesCountByUserID retrieves count of templates belonging to the specified user.
+func (ts *TemplateService) GetTemplatesCountByUserID(ctx context.Context, userID int) (int, error) {
+	return ts.repository.GetTemplatesCountByUserID(ctx, userID)
+}
+
+// GetTemplatesPageByUserID retrieves page of templates belonging to the specified user.
+func (ts *TemplateService) GetTemplatesPageByUserID(ctx context.Context, userID, limit, offset int) ([]*models.Template, error) {
+	if limit <= 0 {
+		limit = ts.defaultLimit
+	}
+	if limit > ts.maxLimit {
+		limit = ts.maxLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return ts.repository.GetTemplatesPageByUserID(ctx, userID, limit, offset)
+}
+
+// GetTemplateByID retrieves a specific template by its ID for the given user.
+func (ts *TemplateService) GetTemplateByID(ctx context.Context, userID int, tmplID int) (*models.Template, error) {
+	return ts.repository.GetTemplateByID(ctx, userID, tmplID)
+}
+
+// CreateTemplate validates and creates a new message template.
+// Returns the created Template model or a domain.ErrInvalidTemplate if body length is invalid.
+func (ts *TemplateService) CreateTemplate(ctx context.Context, tmpl *models.Template) (*models.Template, error) {
+	if len(tmpl.Name) == 0 || len(tmpl.Name) > 32 {
+		return nil, domain.ErrInvalidTemplate
+	}
+
+	if len(tmpl.Body) == 0 || len(tmpl.Body) > 256 {
+		return nil, domain.ErrInvalidTemplate
+	}
+
+	return ts.repository.CreateTemplate(ctx, tmpl)
+}
+
+// UpdateTemplate validates and updates an existing message template for the user.
+// Returns the updated Template model or a domain.ErrInvalidTemplate / domain.ErrTemplateNotExists as appropriate.
+func (ts *TemplateService) UpdateTemplate(ctx context.Context, userID int, tmplID int, updatedTmpl *models.Template) (*models.Template, error) {
+	if len(updatedTmpl.Name) == 0 || len(updatedTmpl.Name) > 32 {
+		return nil, domain.ErrInvalidTemplate
+	}
+
+	if len(updatedTmpl.Body) == 0 || len(updatedTmpl.Body) > 256 {
+		return nil, domain.ErrInvalidTemplate
+	}
+
+	return ts.repository.UpdateTemplate(ctx, userID, tmplID, updatedTmpl)
+}
+
+// DeleteTemplate removes the specified template for the user.
+// Returns domain.ErrTemplateNotExists if no rows were deleted.
+func (ts *TemplateService) DeleteTemplate(ctx context.Context, userID, tmplID int) error {
+	return ts.repository.DeleteTemplate(ctx, userID, tmplID)
+}

@@ -1,0 +1,52 @@
+services:
+  api-migrate:
+    image: migrate/migrate
+    networks:
+      - ens-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./../../db/migrations/api/:/migrations
+    env_file:
+      - .env
+    command: [
+      "-path",
+      "/migrations",
+      "-database",
+      "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable",
+      "up"
+    ]
+
+  apiservice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - ens-net
+    env_file:
+      - .env
+    ports:
+      - "${PORT}:${PORT}"
+    labels:
+      prometheus.scrape: "true"
+      prometheus.port: "8080"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${PORT}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_started
+      init-kafka:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      init-minio:
+        condition: service_completed_successfully
