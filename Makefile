@@ -41,10 +41,11 @@ prepare-env:
 
 .PHONY: lint
 lint:
-	@for service in $(SERVICES); do \
-		if [ -f services/$$service/Makefile ]; then \
+	@cd services; \
+	for service in $(SERVICES); do \
+		if [ -f $$service/Makefile ]; then \
 			echo "==> $$service"; \
-			golangci-lint run --config services/$$service/.golangci.yml ./services/$$service/... || exit 1; \
+			$(MAKE) -C $$service lint || exit 1; \
 		fi \
 	done
 
