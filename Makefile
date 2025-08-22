@@ -45,7 +45,7 @@ lint:
 	for service in $(SERVICES); do \
 		if [ -f $$service/Makefile ]; then \
 			echo "==> $$service"; \
-			$(MAKE) -C $$service lint || exit 1; \
+			golangci-lint run --config $$service/.golangci.yml ./$$service/... || exit 1; \
 		fi \
 	done
 
