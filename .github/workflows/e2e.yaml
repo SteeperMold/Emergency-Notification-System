@@ -1,6 +1,16 @@
 name: e2e-test
 
 on:
+  push:
+    branches: [ main ]
+    paths:
+      - ".github/workflows/e2e.yaml"
+
+  pull_request:
+    branches: [ main ]
+    paths:
+      - ".github/workflows/e2e.yaml"
+
   workflow_run:
     workflows:
       - api-service-ci
