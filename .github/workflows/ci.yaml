@@ -65,7 +65,7 @@ jobs:
           cd services
           make unit-test
 
-  integration-test:
+  integration-test-backend:
     runs-on: ubuntu-latest
     needs: unit-test-backend
     steps:
