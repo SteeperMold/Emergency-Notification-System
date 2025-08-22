@@ -11,15 +11,8 @@
 //TODO разобраться с бейджами
 
 [![CI Status](https://img.shields.io/github/actions/workflow/status/SteeperMold/Emergency-Notification-System/ci.yaml?branch=main)](https://github.com/SteeperMold/Emergency-Notification-System/actions)
-
-## Go Report Card
 [![API Service](https://goreportcard.com/badge/github.com/SteeperMold/Emergency-Notification-System/services/apiservice)](https://goreportcard.com/report/github.com/SteeperMold/Emergency-Notification-System/services/apiservice)
-[![Contacts Worker](https://goreportcard.com/badge/github.com/SteeperMold/Emergency-Notification-System/services/contacts-worker)](https://goreportcard.com/report/github.com/SteeperMold/Emergency-Notification-System/services/contacts-worker)
-[![Notification Service](https://goreportcard.com/badge/github.com/SteeperMold/Emergency-Notification-System/services/notification-service)](https://goreportcard.com/report/github.com/SteeperMold/Emergency-Notification-System/services/notification-service)
-[![Rebalancer Service](https://goreportcard.com/badge/github.com/SteeperMold/Emergency-Notification-System/services/rebalancer-service)](https://goreportcard.com/report/github.com/SteeperMold/Emergency-Notification-System/services/rebalancer-service)
-[![Sender Service](https://goreportcard.com/badge/github.com/SteeperMold/Emergency-Notification-System/services/sender-service)](https://goreportcard.com/report/github.com/SteeperMold/Emergency-Notification-System/services/sender-service)
-
-[![Coverage Status](https://coveralls.io/repos/github/SteeperMold/Emergency-Notification-System/badge.svg?branch=main)](https://coveralls.io/github/SteeperMold/Emergency-Notification-System?branch=main)
+[![Coverage Status](https://codecov.io/gh/SteeperMold/Emergency-Notification-System/branch/main/graph/badge.svg?style=flat-square)](https://codecov.io/gh/SteeperMold/Emergency-Notification-System)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 

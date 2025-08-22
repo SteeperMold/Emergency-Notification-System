@@ -1,41 +1,85 @@
-.PHONY: run-dev prepare-env down flush e2e-test e2e-test-load
+SERVICES = apiservice contacts-worker notification-service rebalancer-service sender-service
+E2E_COMMON_COMPOSE = -f docker-compose.yaml -f docker-compose.override.yaml --env-file ./../.env
 
+.PHONY: all
+all: lint unit-test integration-test e2e-test
+
+.PHONY: run-dev
 run-dev:
-	@echo "Starting development environment..."
 	docker compose up --build
-	@echo "Shutting down development environment..."
 	docker compose down
 
+.PHONY: down
+down:
+	docker compose down --remove-orphans
+	cd e2e; \
+	docker compose $(E2E_COMMON_COMPOSE) --profile e2e down --remove-orphans; \
+	docker compose $(E2E_COMMON_COMPOSE) --profile e2e-load down --remove-orphans
+
+.PHONY: flush
+flush:
+	docker compose down --volumes --remove-orphans
+	cd e2e; \
+	docker compose $(E2E_COMMON_COMPOSE) --profile e2e down --remove-orphans --volumes; \
+	docker compose $(E2E_COMMON_COMPOSE) --profile e2e-load down --remove-orphans --volumes
+
+.PHONY: prepare-env
 prepare-env:
-	@echo "Preparing .env files"
 	@if [ ! -f .env ]; then \
-		echo "==> Copying .env.example to .env"; \
 		cp .env.example .env; \
 	else \
 		echo "==> Skipping, .env already exists"; \
 	fi
-	@echo "Starting E2E tests..."
-	cd services; \
-	$(MAKE) prepare-env
+	@cd services; \
+	for service in $(SERVICES); do \
+		if [ ! -f $$service/.env ]; then \
+			cp $$service/.env.example $$service/.env; \
+		else \
+			echo "==> Skipping $$service (.env already exists)"; \
+		fi \
+	done
 
-E2E_COMMON_COMPOSE = -f docker-compose.yaml -f docker-compose.override.yaml --env-file ./../.env
+.PHONY: lint
+lint:
+	@cd services; \
+	for service in $(SERVICES); do \
+		if [ -f $$service/Makefile ]; then \
+			echo "==> $$service"; \
+			$(MAKE) -C $$service lint || exit 1; \
+		fi \
+	done
 
-down:
-	@echo "Stopping top-level containers..."
-	docker compose down --remove-orphans
-	cd e2e; \
-	echo "Stopping e2e containers..."; \
-	docker compose $(E2E_COMMON_COMPOSE) --profile e2e down --remove-orphans; \
-	docker compose $(E2E_COMMON_COMPOSE) --profile e2e-load down --remove-orphans
+.PHONY: unit-test
+unit-test:
+	@cd services; \
+	for service in $(SERVICES); do \
+		if [ -f $$service/Makefile ]; then \
+			echo "==> $$service"; \
+			$(MAKE) -C $$service unit-test || exit 1; \
+		fi \
+	done
 
-flush:
-	@echo "Flushing top-level containers and volumes..."
-	docker compose down --volumes --remove-orphans
-	cd e2e; \
-	echo "Flushing e2e containers and volumes..."; \
-	docker compose $(E2E_COMMON_COMPOSE) --profile e2e down --remove-orphans --volumes; \
-	docker compose $(E2E_COMMON_COMPOSE) --profile e2e-load down --remove-orphans --volumes
+.PHONY: integration-test
+integration-test:
+	@cd services; \
+	for service in $(SERVICES); do \
+		if [ -f $$service/Makefile ]; then \
+			echo "==> $$service"; \
+			$(MAKE) -C $$service integration-test || exit 1; \
+		fi \
+	done
 
+.PHONY: coverage
+coverage:
+	@rm -f coverage*.out
+	@for service in $(SERVICES); do \
+		echo "==> $$service"; \
+		cd services/$$service && go test -coverprofile=coverage.out ./... || exit 1; \
+		cd ../../; \
+	done; \
+	gocovmerge services/*/coverage.out > coverage_total.out; \
+
+.PHONY: e2e-test
 e2e-test:
 	@echo "Running E2E tests..."
 	cd e2e; \
@@ -49,6 +93,7 @@ e2e-test:
 	echo "E2E tests finished with exit code $$DOWN_EXIT"; \
 	exit $$DOWN_EXIT
 
+.PHONY: e2e-test-load
 e2e-test-load:
 	@echo "Running E2E load tests..."
 	cd e2e; \
