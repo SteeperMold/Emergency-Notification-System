@@ -41,18 +41,13 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: 1.24.3
-          cache: false # managed by golangci-lint
-
-      - uses: golangci/golangci-lint-action@v6
-        name: Install golangci-lint
-        with:
-          version: latest
-          # Hack: Use the official action to download, but not run.
-          # make lint below will handle actually running the linter.
-          args: --help
 
       - name: Run lint
-        run: make lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+          | sh -s -- -b $(go env GOPATH)/bin latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          make lint
 
   unit-test-backend:
     runs-on: ubuntu-latest
