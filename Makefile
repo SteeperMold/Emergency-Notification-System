@@ -12,7 +12,7 @@ down:
 	@echo "Stopping top-level containers..."
 	docker compose down --remove-orphans
 	cd e2e; \
-	@echo "Stopping e2e containers..."; \
+	echo "Stopping e2e containers..."; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e down --remove-orphans; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e-load down --remove-orphans
 
@@ -20,7 +20,7 @@ flush:
 	@echo "Flushing top-level containers and volumes..."
 	docker compose down --volumes --remove-orphans
 	cd e2e; \
-	@echo "Flushing e2e containers and volumes..."; \
+	echo "Flushing e2e containers and volumes..."; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e down --remove-orphans --volumes; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e-load down --remove-orphans --volumes
 
@@ -34,7 +34,7 @@ e2e-test:
 	DOWN_EXIT=$$?; \
 	cd ../; \
 	make flush; \
-	@echo "E2E tests finished with exit code $$DOWN_EXIT"; \
+	echo "E2E tests finished with exit code $$DOWN_EXIT"; \
 	exit $$DOWN_EXIT
 
 e2e-test-load:
@@ -47,5 +47,5 @@ e2e-test-load:
 	DOWN_EXIT=$$?; \
 	cd ../; \
 	make flush; \
-	@echo "E2E load tests finished with exit code $$DOWN_EXIT"; \
+	echo "E2E load tests finished with exit code $$DOWN_EXIT"; \
 	exit $$DOWN_EXIT
