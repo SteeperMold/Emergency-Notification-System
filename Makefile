@@ -1,10 +1,22 @@
-.PHONY: run-dev down flush e2e-test e2e-test-load
+.PHONY: run-dev prepare-env down flush e2e-test e2e-test-load
 
 run-dev:
 	@echo "Starting development environment..."
 	docker compose up --build
 	@echo "Shutting down development environment..."
 	docker compose down
+
+prepare-env:
+	@echo "Preparing .env files"
+	@if [ ! -f .env ]; then \
+		echo "==> Copying .env.example to .env"; \
+		cp .env.example .env; \
+	else \
+		echo "==> Skipping, .env already exists"; \
+	fi
+	@echo "Starting E2E tests..."
+	cd services; \
+	$(MAKE) prepare-env
 
 E2E_COMMON_COMPOSE = -f docker-compose.yaml -f docker-compose.override.yaml --env-file ./../.env
 

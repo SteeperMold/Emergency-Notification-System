@@ -1,4 +1,4 @@
-.PHONY: lint unit-test integration-test
+.PHONY: lint unit-test integration-test prepare-env
 
 SERVICES := apiservice contacts-worker notification-service rebalancer-service sender-service
 
@@ -26,5 +26,16 @@ integration-test:
 		if [ -f $$service/Makefile ]; then \
 			echo "==> $$service"; \
 			$(MAKE) -C $$service integration-test || exit 1; \
+		fi \
+	done
+
+prepare-env:
+	@echo "Preparing environment files for all services..."
+	@for service in $(SERVICES); do \
+		if [ ! -f $$service/.env ]; then \
+			echo "==> Copying .env.example to .env in $$service"; \
+			cp $$service/.env.example $$service/.env; \
+		else \
+			echo "==> Skipping $$service (.env already exists)"; \
 		fi \
 	done
