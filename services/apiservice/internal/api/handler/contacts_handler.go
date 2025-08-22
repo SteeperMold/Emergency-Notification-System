@@ -114,7 +114,7 @@ func (ch *ContactsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	contact, err := ch.service.GetContactByID(ctx, userID, contactID)
 	if err != nil {
 		if errors.Is(err, domain.ErrContactNotExists) {
-			http.Error(w, "contact not exists", http.StatusNotFound)
+			http.Error(w, "contact does not exist", http.StatusNotFound)
 		} else {
 			ch.logError("internal server error", r, zap.Int("user_id", userID), zap.Error(err))
 			http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -223,7 +223,7 @@ func (ch *ContactsHandler) Put(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, domain.ErrContactNotExists):
 			http.Error(w, "contact not exists", http.StatusNotFound)
 		case errors.Is(err, domain.ErrContactAlreadyExists):
-			http.Error(w, "contacts already exists", http.StatusConflict)
+			http.Error(w, "contact already exists", http.StatusConflict)
 		default:
 			ch.logError("internal server error", r, zap.String("contact_phone", req.Phone), zap.Error(err))
 			http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -263,7 +263,7 @@ func (ch *ContactsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	err = ch.service.DeleteContact(ctx, userID, contactID)
 	if err != nil {
 		if errors.Is(err, domain.ErrContactNotExists) {
-			http.Error(w, "contact doesn't exist", http.StatusNotFound)
+			http.Error(w, "contact does not exist", http.StatusNotFound)
 		} else {
 			ch.logError("internal server error", r, zap.Int("user_id", userID), zap.Error(err))
 			http.Error(w, "internal server error", http.StatusInternalServerError)
