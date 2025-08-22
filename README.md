@@ -1,4 +1,3 @@
-//TODO возможно потыкать k8s и добавить все таки сюда какие минимальные манифесты
 //TODO написать более подробные ридми для каждого микросервиса
 
 //TODO написать про CI пайпланы
@@ -8,43 +7,20 @@
 
 # Emergency Notification System
 
-//TODO разобраться с бейджами
-
 [![CI Status](https://img.shields.io/github/actions/workflow/status/SteeperMold/Emergency-Notification-System/ci.yaml?branch=main)](https://github.com/SteeperMold/Emergency-Notification-System/actions)
 [![API Service](https://goreportcard.com/badge/github.com/SteeperMold/Emergency-Notification-System/services/apiservice)](https://goreportcard.com/report/github.com/SteeperMold/Emergency-Notification-System/services/apiservice)
 [![Coverage Status](https://codecov.io/gh/SteeperMold/Emergency-Notification-System/branch/main/graph/badge.svg?style=flat-square)](https://codecov.io/gh/SteeperMold/Emergency-Notification-System)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-
-## Содержание
-
-//TODO не забыть в самом конце обновить содержание!!! а может и выпилить его вообще...
-
-* [Обзор](#обзор)
-* [Функциональность](#функциональность)
-* [Архитектура](#архитектура)
-* [Технологический стек](#технологический-стек)
-* [Установка и запуск](#установка-и-запуск)
-    * [Требования](#требования)
-    * [Клонирование и настройка](#клонирование-и-настройка)
-    * [Запуск локально](#запуск-локально)
-* [Использование](#использование)
-* [Структура проекта](#структура-проекта)
-* [Тестирование](#тестирование)
-* [Участие в развитии](#участие-в-развитии)
-* [История изменений](#история-изменений)
-* [Лицензия](#лицензия)
-
 ## Обзор
 
-**Emergency Notification System** — масштабируемая микросервисная платформа для рассылки SMS-уведомлений большому
-количеству контактов с гарантией доставки. Пользователь может загружать контакты из CSV/XLSX-файлов или добавлять
-вручную, создавать шаблоны сообщений и отправлять уведомления миллионам получателей одним кликом. Надёжная логика
-повторных попыток и сервис балансировки гарантируют, что ни одно сообщение не будет потеряно.
+**Emergency Notification System** - это платформа для рассылки SMS-уведомлений большому количеству контактов,
+гарантирующая доставку каждого сообщения. Пользователь может загружать контакты из CSV или XLSX файлов, а также
+добавлять их вручную, создавать шаблоны сообщений и отправлять уведомления миллионам получателей в один клик.
 
 ## Архитектура
 
-![Диаграмма архитектуры](docs/architecture.png)
+![Диаграмма архитектуры](docs/architecture.jpg)
 
 //TODO подробнее написать про кафку и про то у кого какой постгрес
 
@@ -165,14 +141,6 @@ curl -X POST http://localhost:8080/api/notifications \
 * **Unit-тесты**: `make test` или `go test ./services/... -cover`
 * **Интеграционные тесты**: Docker Compose + Testcontainers для Postgres
 
-## История изменений
-
-//TODO посмотреть че это вообще за фигня и можно ли это нарулить постфактум
-
-Смотрите [CHANGELOG.md](CHANGELOG.md) для подробного списка версий и изменений.
-
 ## Лицензия
-
-//TODO и нужна ли вообще тут лицензия тоже вопрос
 
 Проект лицензирован под MIT License. Подробнее в файле [LICENSE](LICENSE).
