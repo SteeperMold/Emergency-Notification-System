@@ -27,4 +27,5 @@ jobs:
 
       - name: Run E2E Tests
         run: |
+          cp .env.example .env
           make e2e-test
