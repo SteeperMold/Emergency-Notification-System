@@ -55,7 +55,7 @@ unit-test:
 	for service in $(SERVICES); do \
 		if [ -f $$service/Makefile ]; then \
 			echo "==> $$service"; \
-			golangci-lint run --path-prefix $$service --config $$service/.golangci.yml ./...; \
+			$(MAKE) -C $$service unit-test || exit 1; \
 		fi \
 	done
 
@@ -81,8 +81,7 @@ coverage:
 
 .PHONY: e2e-test
 e2e-test:
-	@echo "Running E2E tests..."
-	cd e2e; \
+	@cd e2e; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e up \
 		--build \
 		--abort-on-container-exit e2e-tests \
@@ -90,13 +89,11 @@ e2e-test:
 	DOWN_EXIT=$$?; \
 	cd ../; \
 	make flush; \
-	echo "E2E tests finished with exit code $$DOWN_EXIT"; \
 	exit $$DOWN_EXIT
 
 .PHONY: e2e-test-load
 e2e-test-load:
-	@echo "Running E2E load tests..."
-	cd e2e; \
+	@cd e2e; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e-load up \
 		--build \
 		--abort-on-container-exit e2e-tests-load \
@@ -104,5 +101,4 @@ e2e-test-load:
 	DOWN_EXIT=$$?; \
 	cd ../; \
 	make flush; \
-	echo "E2E load tests finished with exit code $$DOWN_EXIT"; \
 	exit $$DOWN_EXIT
