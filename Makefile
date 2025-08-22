@@ -55,7 +55,7 @@ unit-test:
 	for service in $(SERVICES); do \
 		if [ -f $$service/Makefile ]; then \
 			echo "==> $$service"; \
-			$(MAKE) -C $$service unit-test || exit 1; \
+			golangci-lint run --path-prefix $$service ./...) || exit 1; \
 		fi \
 	done
 
