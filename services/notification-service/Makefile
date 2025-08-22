@@ -7,4 +7,5 @@ integration-test:
 	go test -v -race -cover ./... -tags=integration -timeout 3m
 
 lint:
-	golangci-lint run ./...
+	golangci-lint run ./... --config ./.golangci.yml
+
