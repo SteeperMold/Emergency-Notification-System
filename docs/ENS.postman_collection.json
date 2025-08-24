@@ -1,0 +1,551 @@
+{
+	"info": {
+		"_postman_id": "e267ded8-a775-49ef-b73e-f4f30992ae5e",
+		"name": "ENS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "36001641"
+	},
+	"item": [
+		{
+			"name": "Templates",
+			"item": [
+				{
+					"name": "Templates list",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/templates",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"templates"
+							],
+							"query": [
+								{
+									"key": "offset",
+									"value": "123",
+									"description": "Номер элемента с которого начинать выборку",
+									"disabled": true
+								},
+								{
+									"key": "limit",
+									"value": "100",
+									"description": "Максимальное количество элементов, возвращаемых за один запрос",
+									"disabled": true
+								}
+							]
+						},
+						"description": "**GET /templates** – Получение списка всех доступных шаблонов уведомлений пользователя.\n\nПоддерживает пагинацию, по умолчанию выдает первые 50 шаблонов в порядке возрастания id.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 200 OK - запрос выполнен успешно\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Template by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/templates/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"templates",
+								"1"
+							]
+						},
+						"description": "**GET /templates/{id}** – Получение шаблона с указанным id.\n\nВыдает только те шаблоны, которые принадлежат авторизованному пользователю.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 200 OK - запрос выполнен успешно\n    \n- 400 Bad Request - неверный id\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 404 Not Found - шаблон с таким id не существует, либо авторизованный пользователь не является его владельцем\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Post template",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Template Name\",\n    \"body\": \"Это тестовое уведомление.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/templates",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"templates"
+							]
+						},
+						"description": "**POST /templates** – Создать новый шаблон.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 201 Created - шаблон создан успешно\n    \n- 400 Bad Request - неккоректное тело запроса\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 409 Conflict - шаблон с таким именем уже существует\n    \n- 422 Unprocessable Entity - неверные данные шаблона (name/body слишком длинные/короткие)\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Put template",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Template Name\",\n    \"body\": \"Это измененное тестовое уведомление.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/templates/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"templates",
+								"1"
+							]
+						},
+						"description": "**PUT /templates/{id}** – Изменить существующий шаблон.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 200 OK - шаблон изменен успешно\n    \n- 400 Bad Request - неккоректное тело запроса или id шаблона\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 404 Not Found - шаблон с таким id не существует, либо авторизованный пользователь не является его владельцем\n    \n- 409 Conflict - шаблон с таким именем уже существует\n    \n- 422 Unprocessable Entity - неверные данные шаблона (name/body слишком длинные/короткие)\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete template",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/templates/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"templates",
+								"1"
+							]
+						},
+						"description": "**DELETE /templates/{id}** – Удалить существующий шаблон.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 204 No Content - шаблон успешно удален\n    \n- 400 Bad Request - неккоректный id шаблона\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 404 Not Found - шаблон с таким id не существует, либо авторизованный пользователь не является его владельцем\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				}
+			],
+			"description": "В этой папке находятся все эндпоинты для работы с шаблонами нотификаиций."
+		},
+		{
+			"name": "Contacts",
+			"item": [
+				{
+					"name": "Contacts list",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/contacts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contacts"
+							],
+							"query": [
+								{
+									"key": "offset",
+									"value": "123",
+									"description": "Номер элемента с которого начинать выборку",
+									"disabled": true
+								},
+								{
+									"key": "limit",
+									"value": "100",
+									"description": "Максимальное количество элементов, возвращаемых за один запрос",
+									"disabled": true
+								}
+							]
+						},
+						"description": "**GET /contacts** – Получение списка всех доступных контактов пользователя.\n\nПоддерживает пагинацию, по умолчанию выдает первые 50 контактов в порядке возрастания id.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 200 OK - запрос выполнен успешно\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Contact by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/contacts/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contacts",
+								"1"
+							]
+						},
+						"description": "**GET /contacts/{id}** – Получение контакта с указанным id.\n\nВыдает только те контакты, которые принадлежат авторизованному пользователю.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 200 OK - запрос выполнен успешно\n    \n- 400 Bad Request - неверный id\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 404 Not Found - контакт с таким id не существует, либо авторизованный пользователь не является его владельцем\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Post contact",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Contact Name\",\n    \"phone\": \"89123456789\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/contacts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contacts"
+							]
+						},
+						"description": "**POST /contacts** – Создать новый контакт.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 201 Created - контакт создан успешно\n    \n- 400 Bad Request - неккоректное тело запроса\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 409 Conflict - контакт с таким номером телефона уже существует у авторизованного пользователя\n    \n- 422 Unprocessable Entity - неверные данные контакта (name слишком длинный/короткий либо неверный номер телефона)\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Put contact",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Contact Name\",\n    \"phone\": \"89129876543\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/contacts/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contacts",
+								"1"
+							]
+						},
+						"description": "**PUT /contacts/{id}** – Изменить существующий контакт.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 400 Bad Request - неккоректное тело запроса или id контакта\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 404 Not Found - контакт с таким id не существует, либо авторизованный пользователь не является его владельцем\n    \n- 409 Conflict - контакт с таким именем уже существует\n    \n- 422 Unprocessable Entity - неверные данные контакта (name слишком длинный/короткий либо неверный номер телефона)\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete contact",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/contacts/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"contacts",
+								"1"
+							]
+						},
+						"description": "**DELETE /contacts/{id}** – Удалить существующий контакт.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 204 No Content - контакт успешно удален\n    \n- 400 Bad Request - неккоректный id контакта\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 404 Not Found - контакт с таким id не существует, либо авторизованный пользователь не является его владельцем\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Load contacts from file",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"description": "CSV или XLSX файл, содержащий контакты в таком формате:\n\nname,phone\nJohn Doe,89123456789\nИван Иванов,89129876543\n...",
+									"type": "file",
+									"src": "postman-cloud:///1f04e856-2b6c-4f10-aed5-220e15f99b16"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/load-contacts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"load-contacts"
+							]
+						},
+						"description": "**POST /load-contacts** – Загрузить контакты из CSV или XLSX файла. Не обрабатывает файл сразу, а сохраняет его для дальнейшей обработки. Принимает файлы до 100МБ.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 400 Bad Request - неккоректные данные формы, отсутствующий файл\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 422 Unprocessable Entity - неверный тип файла (не CSV/XLSX)\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				}
+			],
+			"description": "В этой папке находятся все эндпоинты для работы с контактами."
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Signup",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"accessToken\", jsonData.accessToken);",
+									"    pm.collectionVariables.set(\"refreshToken\", jsonData.refreshToken);",
+									"}",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test@test.com\",\n    \"password\": \"123456789admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/signup",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"signup"
+							]
+						},
+						"description": "**POST /signup – Регистрация нового пользователя.**\n\nСоздает учетную запись в системе и возвращает пару токенов (access и refresh).\n\nВозможные http статусы ответа:\n\n- 201 Created – пользователь успешно зарегистрирован\n    \n- 400 Bad Request - неккоректное тело запроса\n    \n- 422 Unprocessable Entity - неверная почта либо пароль\n    \n- 409 Conflict – пользователь с таким email уже существует\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"accessToken\", jsonData.accessToken);",
+									"    pm.collectionVariables.set(\"refreshToken\", jsonData.refreshToken);",
+									"}",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test@test.com\",\n    \"password\": \"123456789admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"login"
+							]
+						},
+						"description": "**POST /login – Аутентификация пользователя.**\n\nПринимает email и пароль, проверяет учетные данные и возвращает пару токенов (access и refresh).\n\nВозможные http статусы ответа:\n\n- 200 OK – успешная аутентификация\n    \n- 400 Bad Request - неккоректное тело запроса\n    \n- 401 Unauthorized – неверный email или пароль или пользователь не существует\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"accessToken\", jsonData.accessToken);",
+									"    pm.collectionVariables.set(\"refreshToken\", jsonData.refreshToken);",
+									"}",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/refresh-token",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"refresh-token"
+							]
+						},
+						"description": "**POST /refresh-token – Обновление токенов аутентификации.**\n\nПринимает refresh токен и возвращает новую пару токенов (access и refresh).\n\nВозможные http статусы ответа:\n\n- 200 OK – токены успешно обновлены\n    \n- 400 Bad Request – некорректное тело запроса\n    \n- 401 Unauthorized – отсутствует или неверный refresh токен\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				},
+				{
+					"name": "Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJleHAiOjE3NTAzNDQ4MTIsImlhdCI6MTc1MDMzNzYxMiwiaWQiOjIsIm5iZiI6MTc1MDMzNzYxMn0.jfzj6VJsV4jLuXm3-wc98lEfNDKrHEacoEo6Gd0BIEQ",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"profile"
+							]
+						},
+						"description": "**GET /profile** – Получение профиля авторизованного пользователя.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 200 OK - запрос выполнен успешно\n    \n- 401 Unauthorized - отсутствует или неверный токен авторизации\n    \n- 404 Not Found - пользователь не найден\n    \n- 500 Internal Server Error"
+					},
+					"response": []
+				}
+			],
+			"description": "В этой папке находятся все эндпоинты для аутентификации и управления токенами."
+		},
+		{
+			"name": "Notification",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/send-notification/1",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"send-notification",
+						"1"
+					]
+				},
+				"description": "**POST /send-notification/{template_id} – Отправка уведомлений всем контактам.**\n\nПринимает ID шаблона. Создает задачи на отправку уведомлений и публикует их.\n\nТребует авторизации.\n\nВозможные http статусы ответа:\n\n- 202 Accepted – задачи успешно созданы и опубликованы\n    \n- 400 Bad Request – неверный id шаблона\n    \n- 401 Unauthorized – отсутствует или неверный токен авторизации\n    \n- 404 Not Found – указанный шаблон не существует или у авторизованного пользователя нет контактов\n    \n- 500 Internal Server Error"
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "notificationsUrl",
+			"value": "http://localhost:8081"
+		},
+		{
+			"key": "accessToken",
+			"value": "token",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			}
+		},
+		{
+			"key": "refreshToken",
+			"value": "token",
+			"type": "string",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			}
+		}
+	]
+}
