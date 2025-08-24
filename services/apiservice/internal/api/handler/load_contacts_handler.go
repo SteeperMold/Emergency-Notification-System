@@ -54,7 +54,7 @@ func (lch *LoadContactsHandler) LoadContactsFile(w http.ResponseWriter, r *http.
 	userID, ok := rawUserID.(int)
 	if !ok {
 		lch.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -62,25 +62,25 @@ func (lch *LoadContactsHandler) LoadContactsFile(w http.ResponseWriter, r *http.
 
 	err := r.ParseMultipartForm(0)
 	if err != nil {
-		http.Error(w, "invalid form", http.StatusBadRequest)
+		http.Error(w, "Invalid form", http.StatusBadRequest)
 		return
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "missing file", http.StatusBadRequest)
+		http.Error(w, "Missing file", http.StatusBadRequest)
 		return
 	}
 	defer func(file multipart.File) {
 		err := file.Close()
 		if err != nil {
-			lch.logError("internal server error", r, zap.Error(err))
+			lch.logError("failed to close contacts file", r, zap.Error(err))
 		}
 	}(file)
 
 	ext := strings.ToLower(filepath.Ext(header.Filename))
 	if ext != ".csv" && ext != ".xlsx" {
-		http.Error(w, "only csv and xlsx files allowed", http.StatusUnprocessableEntity)
+		http.Error(w, "Only csv and xlsx files allowed", http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -92,27 +92,27 @@ func (lch *LoadContactsHandler) LoadContactsFile(w http.ResponseWriter, r *http.
 	case "text/plain; charset=utf-8", "text/csv":
 	case "application/zip":
 	default:
-		http.Error(w, "invalid file type", http.StatusUnprocessableEntity)
+		http.Error(w, "Invalid file type", http.StatusUnprocessableEntity)
 		return
 	}
 
 	seeker, ok := file.(io.Seeker)
 	if !ok {
-		lch.logError("internal server error", r, zap.Error(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		lch.logError("failed to assert contacts file type ", r, zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 	_, err = seeker.Seek(0, io.SeekStart)
 	if err != nil {
-		lch.logError("internal server error", r, zap.Error(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		lch.logError("failed to seek contacts file start", r, zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	err = lch.service.ProcessUpload(ctx, userID, header.Filename, file)
 	if err != nil {
-		lch.logError("internal server error", r, zap.Error(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		lch.logError("failed to process contacts file upload", r, zap.Int("user_id", userID), zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 

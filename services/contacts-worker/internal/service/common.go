@@ -62,12 +62,7 @@ func (cs *ContactsService) ingestAndSave(ctx context.Context, userID int, provid
 }
 
 // runWriter consumes batches from writeCh and saves them via repository.
-func (cs *ContactsService) runWriter(
-	ctx context.Context,
-	writeCh <-chan []*models.Contact,
-	errCh chan<- error,
-	total *int32,
-) {
+func (cs *ContactsService) runWriter(ctx context.Context, writeCh <-chan []*models.Contact, errCh chan<- error, total *int32) {
 	for batch := range writeCh {
 		select {
 		case <-ctx.Done():
@@ -89,13 +84,9 @@ func (cs *ContactsService) runWriter(
 }
 
 // runWorker reads raw records, validates them, and sends full batches to writeCh.
-func (cs *ContactsService) runWorker(
-	ctx context.Context,
-	userID int,
-	jobsCh <-chan []string,
-	writeCh chan<- []*models.Contact,
-) {
+func (cs *ContactsService) runWorker(ctx context.Context, userID int, jobsCh <-chan []string, writeCh chan<- []*models.Contact) {
 	batch := make([]*models.Contact, 0, cs.batchSize)
+
 	flush := func() {
 		if len(batch) > 0 {
 			writeCh <- batch

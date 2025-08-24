@@ -57,7 +57,7 @@ func (ch *ContactsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		ch.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -68,17 +68,18 @@ func (ch *ContactsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	contactsPage, err := ch.service.GetContactsPageByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		ch.logError("failed to get contacts page", r, zap.Int("user_id", userID), zap.Error(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	contactsCount, err := ch.service.GetContactsCountByUserID(ctx, userID)
 	if err != nil {
 		ch.logError("failed to get contacts count", r, zap.Int("user_id", userID), zap.Error(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(&domain.GetContactsResponse{
 		Contacts: contactsPage,
@@ -99,7 +100,7 @@ func (ch *ContactsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		ch.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -107,21 +108,22 @@ func (ch *ContactsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	contactIDStr := vars["id"]
 	contactID, err := strconv.Atoi(contactIDStr)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		http.Error(w, "Invalid id", http.StatusBadRequest)
 		return
 	}
 
 	contact, err := ch.service.GetContactByID(ctx, userID, contactID)
 	if err != nil {
 		if errors.Is(err, domain.ErrContactNotExists) {
-			http.Error(w, "contact does not exist", http.StatusNotFound)
+			http.Error(w, "Contact does not exist", http.StatusNotFound)
 		} else {
-			ch.logError("internal server error", r, zap.Int("user_id", userID), zap.Error(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			ch.logError("failed to get contact by id", r, zap.Int("user_id", userID), zap.Int("id", contactID), zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(contact)
 	if err != nil {
@@ -140,7 +142,7 @@ func (ch *ContactsHandler) Post(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		ch.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -148,7 +150,7 @@ func (ch *ContactsHandler) Post(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -164,14 +166,15 @@ func (ch *ContactsHandler) Post(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, domain.ErrInvalidContact):
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		case errors.Is(err, domain.ErrContactAlreadyExists):
-			http.Error(w, "contact already exists", http.StatusConflict)
+			http.Error(w, "Contact already exists", http.StatusConflict)
 		default:
-			ch.logError("internal server error", r, zap.String("contact_phone", req.Phone), zap.Error(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			ch.logError("failed to create contact", r, zap.String("contact_phone", req.Phone), zap.Int("user_id", userID), zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(newContact)
 	if err != nil {
@@ -189,7 +192,7 @@ func (ch *ContactsHandler) Put(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		ch.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -197,7 +200,7 @@ func (ch *ContactsHandler) Put(w http.ResponseWriter, r *http.Request) {
 	contactIDStr := vars["id"]
 	contactID, err := strconv.Atoi(contactIDStr)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		http.Error(w, "Invalid id", http.StatusBadRequest)
 		return
 	}
 
@@ -205,7 +208,7 @@ func (ch *ContactsHandler) Put(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -221,16 +224,17 @@ func (ch *ContactsHandler) Put(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, domain.ErrInvalidContact):
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		case errors.Is(err, domain.ErrContactNotExists):
-			http.Error(w, "contact not exists", http.StatusNotFound)
+			http.Error(w, "Contact does not exist", http.StatusNotFound)
 		case errors.Is(err, domain.ErrContactAlreadyExists):
-			http.Error(w, "contact already exists", http.StatusConflict)
+			http.Error(w, "Contact already exists", http.StatusConflict)
 		default:
-			ch.logError("internal server error", r, zap.String("contact_phone", req.Phone), zap.Error(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			ch.logError("failed to update contact", r, zap.String("contact_phone", req.Phone), zap.Int("user_id", userID), zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(updatedContact)
 	if err != nil {
@@ -248,7 +252,7 @@ func (ch *ContactsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		ch.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -256,17 +260,17 @@ func (ch *ContactsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	contactIDStr := vars["id"]
 	contactID, err := strconv.Atoi(contactIDStr)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		http.Error(w, "Invalid id", http.StatusBadRequest)
 		return
 	}
 
 	err = ch.service.DeleteContact(ctx, userID, contactID)
 	if err != nil {
 		if errors.Is(err, domain.ErrContactNotExists) {
-			http.Error(w, "contact does not exist", http.StatusNotFound)
+			http.Error(w, "Contact does not exist", http.StatusNotFound)
 		} else {
-			ch.logError("internal server error", r, zap.Int("user_id", userID), zap.Error(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			ch.logError("failed to delete contact", r, zap.Int("user_id", userID), zap.Int("contact_id", contactID), zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}

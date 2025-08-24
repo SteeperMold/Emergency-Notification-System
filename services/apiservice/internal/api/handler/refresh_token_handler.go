@@ -58,34 +58,34 @@ func (rth *RefreshTokenHandler) RefreshToken(w http.ResponseWriter, r *http.Requ
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	id, err := tokenutils.ExtractIDFromToken(request.RefreshToken, rth.refreshTokenSecret)
 	if err != nil {
-		http.Error(w, "invalid refresh token", http.StatusUnauthorized)
+		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
 
 	user, err := rth.service.GetUserByID(ctx, id)
 	if err != nil {
-		rth.logError("internal server error", r, id, err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		rth.logError("failed to get user by id", r, id, err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	accessToken, err := tokenutils.CreateAccessToken(user, rth.accessTokenSecret, rth.accessTokenExpiry)
 	if err != nil {
 		rth.logError("failed to create access token", r, id, err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	refreshToken, err := tokenutils.CreateRefreshToken(user, rth.refreshTokenSecret, rth.refreshTokenExpiry)
 	if err != nil {
 		rth.logError("failed to create refresh token", r, id, err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -94,6 +94,7 @@ func (rth *RefreshTokenHandler) RefreshToken(w http.ResponseWriter, r *http.Requ
 		RefreshToken: refreshToken,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(refreshTokenResponse)
 	if err != nil {

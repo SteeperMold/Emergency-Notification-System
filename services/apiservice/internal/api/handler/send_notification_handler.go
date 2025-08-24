@@ -56,7 +56,7 @@ func (snh *SendNotificationHandler) SendNotification(w http.ResponseWriter, r *h
 	userID, ok := rawUserID.(int)
 	if !ok {
 		snh.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (snh *SendNotificationHandler) SendNotification(w http.ResponseWriter, r *h
 	templateIDStr := vars["id"]
 	templateID, err := strconv.Atoi(templateIDStr)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -72,12 +72,12 @@ func (snh *SendNotificationHandler) SendNotification(w http.ResponseWriter, r *h
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrTemplateNotExists):
-			http.Error(w, "template not exists", http.StatusNotFound)
+			http.Error(w, "Template does not exist", http.StatusNotFound)
 		case errors.Is(err, domain.ErrContactNotExists):
-			http.Error(w, "no contacts", http.StatusNotFound)
+			http.Error(w, "No contacts", http.StatusNotFound)
 		default:
 			snh.logError("failed to send notification", r, zap.Error(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
