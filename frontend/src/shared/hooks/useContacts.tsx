@@ -10,6 +10,11 @@ export interface Contact {
   updateTime: Date;
 }
 
+interface ContactsResponse {
+  contacts: Contact[];
+  total: number;
+}
+
 export type CreateContactInput = Pick<Contact, "name" | "phone">;
 export type UpdateContactInput = CreateContactInput & { id: number };
 
@@ -23,7 +28,7 @@ export const useContacts = () => {
     error,
   } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => Api.get<Contact[]>("/contacts").then(res => res.data),
+    queryFn: () => Api.get<ContactsResponse>("/contacts").then(res => res.data.contacts),
     select: rawContacts => {
       return rawContacts
         .map(c => ({

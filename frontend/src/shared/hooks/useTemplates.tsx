@@ -10,6 +10,11 @@ export interface Template {
   updateTime: Date;
 }
 
+interface TemplatesResponse {
+  templates: Template[];
+  total: number;
+}
+
 export type CreateTemplateInput = Pick<Template, "name" | "body">;
 export type UpdateTemplateInput = CreateTemplateInput & { id: number };
 
@@ -22,8 +27,8 @@ export const useTemplates = () => {
     isError,
     error,
   } = useQuery({
-    queryKey: ["template"],
-    queryFn: () => Api.get<Template[]>("/template").then(res => res.data),
+    queryKey: ["templates"],
+    queryFn: () => Api.get<TemplatesResponse>("/templates").then(res => res.data.templates),
     select: rawTemplates => {
       return rawTemplates
         .map(t => ({
@@ -39,25 +44,25 @@ export const useTemplates = () => {
 
   const createTemplate = useMutation({
     mutationFn: (newTmpl: CreateTemplateInput) =>
-      Api.post("/template", {
+      Api.post("/templates", {
         name: newTmpl.name,
         body: newTmpl.body,
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["template"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["templates"] }),
   });
 
   const updateTemplate = useMutation({
     mutationFn: (tmpl: UpdateTemplateInput) =>
-      Api.put(`/template/${tmpl.id}`, {
+      Api.put(`/templates/${tmpl.id}`, {
         name: tmpl.name,
         body: tmpl.body,
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["template"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["templates"] }),
   });
 
   const deleteTemplate = useMutation({
-    mutationFn: (id: number) => Api.delete(`/template/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["template"] }),
+    mutationFn: (id: number) => Api.delete(`/templates/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["templates"] }),
   });
 
   return {
