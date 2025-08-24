@@ -13,15 +13,15 @@ import (
 )
 
 // NewTemplateRoute registers HTTP routes for managing message templates on the given mux.Router.
-// Routes include GET, POST, PUT, and DELETE operations for /template and /template/{id}.
+// Routes include GET, POST, PUT, and DELETE operations for /templates and /templates/{id}.
 func NewTemplateRoute(mux *mux.Router, db domain.DBConn, logger *zap.Logger, timeout time.Duration, paginationDefaultLimit, paginationMaxLimit int) {
 	tr := repository.NewTemplateRepository(db)
 	ts := service.NewTemplateService(tr, paginationDefaultLimit, paginationMaxLimit)
 	th := handler.NewTemplateHandler(ts, logger, timeout)
 
-	mux.HandleFunc("/template", th.Get).Methods(http.MethodGet, http.MethodOptions)
-	mux.HandleFunc("/template/{id}", th.GetByID).Methods(http.MethodGet, http.MethodOptions)
-	mux.HandleFunc("/template", th.Post).Methods(http.MethodPost, http.MethodOptions)
-	mux.HandleFunc("/template/{id}", th.Put).Methods(http.MethodPut, http.MethodOptions)
-	mux.HandleFunc("/template/{id}", th.Delete).Methods(http.MethodDelete, http.MethodOptions)
+	mux.HandleFunc("/templates", th.Get).Methods(http.MethodGet, http.MethodOptions)
+	mux.HandleFunc("/templates/{id}", th.GetByID).Methods(http.MethodGet, http.MethodOptions)
+	mux.HandleFunc("/templates", th.Post).Methods(http.MethodPost, http.MethodOptions)
+	mux.HandleFunc("/templates/{id}", th.Put).Methods(http.MethodPut, http.MethodOptions)
+	mux.HandleFunc("/templates/{id}", th.Delete).Methods(http.MethodDelete, http.MethodOptions)
 }
