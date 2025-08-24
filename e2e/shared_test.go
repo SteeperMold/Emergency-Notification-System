@@ -19,7 +19,7 @@ import (
 const (
 	apiBaseURL       = "http://apiservice:8080"
 	signupPath       = "/signup"
-	templatePath     = "/template"
+	templatePath     = "/templates"
 	contactPath      = "/contacts"
 	loadContactsPath = "/load-contacts"
 	sendPath         = "/send-notification"
