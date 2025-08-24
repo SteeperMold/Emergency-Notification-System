@@ -61,7 +61,7 @@ func (ph *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	profile, err := ph.service.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotExists) {
-			http.Error(w, "User not exists", http.StatusNotFound)
+			http.Error(w, "User does not exist", http.StatusNotFound)
 		} else {
 			ph.logError("failed to get user by id", r, zap.Int("user_id", userID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

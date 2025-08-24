@@ -29,7 +29,7 @@ func TestProfileHandler_GetProfile(t *testing.T) {
 			name:           "user ID missing from context",
 			setupContext:   func(r *http.Request) {},
 			wantStatusCode: http.StatusInternalServerError,
-			wantBody:       "internal server error\n",
+			wantBody:       "Internal Server Error\n",
 		},
 		{
 			name: "user not found",
@@ -43,7 +43,7 @@ func TestProfileHandler_GetProfile(t *testing.T) {
 					Once()
 			},
 			wantStatusCode: http.StatusNotFound,
-			wantBody:       "user not exists\n",
+			wantBody:       "User does not exist\n",
 		},
 		{
 			name: "internal error from service",
@@ -57,7 +57,7 @@ func TestProfileHandler_GetProfile(t *testing.T) {
 					Once()
 			},
 			wantStatusCode: http.StatusInternalServerError,
-			wantBody:       "internal server error\n",
+			wantBody:       "Internal Server Error\n",
 		},
 		{
 			name: "successful profile fetch",
