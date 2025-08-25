@@ -59,37 +59,37 @@ func (lh *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	user, err := lh.service.GetUserByEmail(ctx, request.Email)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotExists) {
-			http.Error(w, "invalid credentials or user doesn't exist", http.StatusUnauthorized)
+			http.Error(w, "Invalid credentials or user doesn't exist", http.StatusUnauthorized)
 		} else {
-			lh.logError("internal server error", r, request.Email, err)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			lh.logError("failed to get user by email", r, request.Email, err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
 
 	if !lh.service.CompareCredentials(user, &request) {
-		http.Error(w, "invalid credentials or user doesn't exist", http.StatusUnauthorized)
+		http.Error(w, "Invalid credentials or user does not exist", http.StatusUnauthorized)
 		return
 	}
 
 	accessToken, err := tokenutils.CreateAccessToken(user, lh.accessTokenSecret, lh.accessTokenExpiry)
 	if err != nil {
 		lh.logError("failed to create access token", r, user.Email, err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	refreshToken, err := tokenutils.CreateRefreshToken(user, lh.refreshTokenSecret, lh.refreshTokenExpiry)
 	if err != nil {
 		lh.logError("failed to create refresh token", r, user.Email, err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -99,6 +99,7 @@ func (lh *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: refreshToken,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

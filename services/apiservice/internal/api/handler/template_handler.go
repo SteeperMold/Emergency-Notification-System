@@ -56,7 +56,7 @@ func (th *TemplateHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		th.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -67,17 +67,18 @@ func (th *TemplateHandler) Get(w http.ResponseWriter, r *http.Request) {
 	templatesPage, err := th.service.GetTemplatesPageByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		th.logError("failed to get templates page", r, zap.Int("user_id", userID), zap.Error(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	templatesCount, err := th.service.GetTemplatesCountByUserID(ctx, userID)
 	if err != nil {
 		th.logError("failed to get templates count", r, zap.Int("user_id", userID), zap.Error(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(&domain.GetTemplatesResponse{
 		Templates: templatesPage,
@@ -98,7 +99,7 @@ func (th *TemplateHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		th.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -106,21 +107,22 @@ func (th *TemplateHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	tmplIDStr := vars["id"]
 	tmplID, err := strconv.Atoi(tmplIDStr)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		http.Error(w, "Invalid id", http.StatusBadRequest)
 		return
 	}
 
 	tmpl, err := th.service.GetTemplateByID(ctx, userID, tmplID)
 	if err != nil {
 		if errors.Is(err, domain.ErrTemplateNotExists) {
-			http.Error(w, "template not exists", http.StatusNotFound)
+			http.Error(w, "Template does not exist", http.StatusNotFound)
 		} else {
-			th.logError("internal server error", r, zap.Int("user_id", userID), zap.Error(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			th.logError("failed to get template by id", r, zap.Int("user_id", userID), zap.Int("template_id", tmplID), zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(tmpl)
 	if err != nil {
@@ -138,7 +140,7 @@ func (th *TemplateHandler) Post(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		th.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -146,7 +148,7 @@ func (th *TemplateHandler) Post(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -160,16 +162,17 @@ func (th *TemplateHandler) Post(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrInvalidTemplate):
-			http.Error(w, "invalid template", http.StatusUnprocessableEntity)
+			http.Error(w, "Invalid template", http.StatusUnprocessableEntity)
 		case errors.Is(err, domain.ErrTemplateAlreadyExists):
-			http.Error(w, "template already exists", http.StatusConflict)
+			http.Error(w, "Template already exists", http.StatusConflict)
 		default:
-			th.logError("internal server error", r, zap.String("template_body", req.Body), zap.Error(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			th.logError("failed to create template", r, zap.String("template_body", req.Body), zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(newTmpl)
 	if err != nil {
@@ -187,7 +190,7 @@ func (th *TemplateHandler) Put(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		th.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -195,7 +198,7 @@ func (th *TemplateHandler) Put(w http.ResponseWriter, r *http.Request) {
 	tmplIDStr := vars["id"]
 	tmplID, err := strconv.Atoi(tmplIDStr)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		http.Error(w, "Invalid id", http.StatusBadRequest)
 		return
 	}
 
@@ -203,7 +206,7 @@ func (th *TemplateHandler) Put(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -217,18 +220,19 @@ func (th *TemplateHandler) Put(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrInvalidTemplate):
-			http.Error(w, "invalid template", http.StatusUnprocessableEntity)
+			http.Error(w, "Invalid template", http.StatusUnprocessableEntity)
 		case errors.Is(err, domain.ErrTemplateNotExists):
-			http.Error(w, "template not exists", http.StatusNotFound)
+			http.Error(w, "Template not exists", http.StatusNotFound)
 		case errors.Is(err, domain.ErrTemplateAlreadyExists):
-			http.Error(w, "template already exists", http.StatusConflict)
+			http.Error(w, "Template already exists", http.StatusConflict)
 		default:
-			th.logError("internal server error", r, zap.String("template_body", req.Body), zap.Error(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			th.logError("failed to update template", r, zap.String("template_body", req.Body), zap.Int("user_id", userID), zap.Int("template_id", tmplID), zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(updatedTmpl)
 	if err != nil {
@@ -246,7 +250,7 @@ func (th *TemplateHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		th.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -254,17 +258,17 @@ func (th *TemplateHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	tmplIDStr := vars["id"]
 	tmplID, err := strconv.Atoi(tmplIDStr)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		http.Error(w, "Invalid id", http.StatusBadRequest)
 		return
 	}
 
 	err = th.service.DeleteTemplate(ctx, userID, tmplID)
 	if err != nil {
 		if errors.Is(err, domain.ErrTemplateNotExists) {
-			http.Error(w, "template not exists", http.StatusNotFound)
+			http.Error(w, "Template does not exist", http.StatusNotFound)
 		} else {
-			th.logError("internal server error", r, zap.Int("user_id", userID), zap.Error(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			th.logError("failed to delete template", r, zap.Int("user_id", userID), zap.Int("template_id", tmplID), zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}

@@ -32,7 +32,7 @@ func (h *HealthCheckHandler) HealthCheck(w http.ResponseWriter, r *http.Request)
 
 	err := h.service.HealthCheck(ctx)
 	if err != nil {
-		http.Error(w, "unhealthy", http.StatusServiceUnavailable)
+		http.Error(w, "Unhealthy", http.StatusServiceUnavailable)
 		return
 	}
 

@@ -54,21 +54,22 @@ func (ph *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := rawUserID.(int)
 	if !ok {
 		ph.logError("userID context value is not int", r, zap.Any("user_id", rawUserID))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	profile, err := ph.service.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotExists) {
-			http.Error(w, "user not exists", http.StatusNotFound)
+			http.Error(w, "User does not exist", http.StatusNotFound)
 		} else {
-			ph.logError("internal server error", r, zap.Int("user_id", userID))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			ph.logError("failed to get user by id", r, zap.Int("user_id", userID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(&profile)
 	if err != nil {

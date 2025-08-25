@@ -20,7 +20,7 @@ func JwtAuthMiddleware(accessSecret string) func(http.Handler) http.Handler {
 			parts := strings.SplitN(authHandler, " ", 2)
 
 			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
@@ -28,13 +28,13 @@ func JwtAuthMiddleware(accessSecret string) func(http.Handler) http.Handler {
 
 			isAuthorized, err := tokenutils.IsAuthorized(token, accessSecret)
 			if !isAuthorized || err != nil {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
 			userID, err := tokenutils.ExtractIDFromToken(token, accessSecret)
 			if err != nil {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 

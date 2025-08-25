@@ -36,7 +36,7 @@ func (h *TwilioStatusCallbackHandler) ProcessCallback(w http.ResponseWriter, r *
 	err := r.ParseForm()
 	if err != nil {
 		h.logger.Info("twilio callback: invalid form", zap.Error(err))
-		http.Error(w, "bad request", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (h *TwilioStatusCallbackHandler) ProcessCallback(w http.ResponseWriter, r *
 	status := r.PostFormValue("MessageStatus")
 	if sid == "" || status == "" {
 		h.logger.Info("twilio callback: missing field", zap.String("sid", sid), zap.String("status", status))
-		http.Error(w, "missing parameters", http.StatusBadRequest)
+		http.Error(w, "Missing parameters", http.StatusBadRequest)
 		return
 	}
 

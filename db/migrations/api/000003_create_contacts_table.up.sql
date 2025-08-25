@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS contacts
     user_id    INT REFERENCES users (id) ON DELETE CASCADE,
     name       TEXT NOT NULL,
     phone      TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT now(),
-    updated_at TIMESTAMP DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
 
     UNIQUE (user_id, phone)
 );

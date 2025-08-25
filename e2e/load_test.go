@@ -130,4 +130,6 @@ func TestMillionContactsNotification(t *testing.T) {
 
 	successRate := float64(sentNtfsCount) / float64(expectedNtfsCount)
 	require.GreaterOrEqual(t, successRate, 0.9999, "too little success rate: %v", successRate)
+
+	t.Log("successfully delivered 99.99%+ of notifications")
 }

@@ -60,23 +60,22 @@ func (sh *SignupHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	newUser, err := sh.service.CreateUser(ctx, &request)
-
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrInvalidEmail):
-			http.Error(w, "invalid email", http.StatusUnprocessableEntity)
+			http.Error(w, "Invalid email", http.StatusUnprocessableEntity)
 		case errors.Is(err, domain.ErrInvalidPassword):
-			http.Error(w, "invalid password", http.StatusUnprocessableEntity)
+			http.Error(w, "Invalid password", http.StatusUnprocessableEntity)
 		case errors.Is(err, domain.ErrEmailAlreadyExists):
-			http.Error(w, "email already exists", http.StatusConflict)
+			http.Error(w, "Email already exists", http.StatusConflict)
 		default:
-			sh.logError("internal server error", r, request.Email, err)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			sh.logError("failed to create user", r, request.Email, err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -84,14 +83,14 @@ func (sh *SignupHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := tokenutils.CreateAccessToken(newUser, sh.accessTokenSecret, sh.accessTokenExpiry)
 	if err != nil {
 		sh.logError("failed to create access token", r, newUser.Email, err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	refreshToken, err := tokenutils.CreateRefreshToken(newUser, sh.refreshTokenSecret, sh.refreshTokenExpiry)
 	if err != nil {
 		sh.logError("failed to create refresh token", r, newUser.Email, err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -101,6 +100,7 @@ func (sh *SignupHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: refreshToken,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

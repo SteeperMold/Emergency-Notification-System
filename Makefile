@@ -6,20 +6,20 @@ all: lint unit-test integration-test e2e-test
 
 .PHONY: run-dev
 run-dev:
-	docker compose up --build
-	docker compose down
+	@docker compose up --build
+	@docker compose down
 
 .PHONY: down
 down:
-	docker compose down --remove-orphans
-	cd e2e; \
+	@docker compose down --remove-orphans
+	@cd e2e; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e down --remove-orphans; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e-load down --remove-orphans
 
 .PHONY: flush
 flush:
-	docker compose down --volumes --remove-orphans
-	cd e2e; \
+	@docker compose down --volumes --remove-orphans
+	@cd e2e; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e down --remove-orphans --volumes; \
 	docker compose $(E2E_COMMON_COMPOSE) --profile e2e-load down --remove-orphans --volumes
 
