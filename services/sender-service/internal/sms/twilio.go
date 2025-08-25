@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/SteeperMold/Emergency-Notification-System/services/sender-service/internal/domain"
 	"github.com/twilio/twilio-go"
 	api "github.com/twilio/twilio-go/rest/api/v2010"
 )
@@ -29,7 +30,7 @@ func (e TwilioSendError) Retryable() bool {
 // Sender sends SMS messages using Twilio.
 // It also registers a status callback for delivery reporting.
 type Sender struct {
-	client          *twilio.RestClient
+	twilioAPI       domain.TwilioAPI
 	fromNumber      string
 	callbackBaseURL string
 }
@@ -42,7 +43,7 @@ func NewSmsSender(accountSID, authToken, fromNumber, callbackBaseURL string) *Se
 	})
 
 	return &Sender{
-		client:          client,
+		twilioAPI:       client.Api,
 		fromNumber:      fromNumber,
 		callbackBaseURL: callbackBaseURL,
 	}
@@ -67,7 +68,7 @@ func (s *Sender) SendSMS(to, body, notificationID string) error {
 	params.SetTo(to)
 	params.SetBody(body)
 
-	resp, err := s.client.Api.CreateMessage(params)
+	resp, err := s.twilioAPI.CreateMessage(params)
 	if err != nil {
 		// assume low-level errors (e.g. network) are retryable
 		return TwilioSendError{
