@@ -74,7 +74,7 @@ coverage:
 	@rm -f coverage*.out
 	@for service in $(SERVICES); do \
 		echo "==> $$service"; \
-		cd services/$$service && go test -coverprofile=coverage.out ./... || exit 1; \
+		cd services/$$service && go test -tags=integration -coverprofile=coverage.out ./... || exit 1; \
 		cd ../../; \
 	done; \
 	gocovmerge services/*/coverage.out > coverage_total.out; \
